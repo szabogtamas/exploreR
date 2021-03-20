@@ -1,0 +1,20 @@
+---
+title: "Quality Control comparing precision across sites"
+output: 
+  html_document:
+    code_folding: hide
+    toc: true
+    toc_float:
+      toc_collapsed: true
+---
+
+## Workspace setup
+
+
+```{r}
+# Import tools to be used
+
+library(dplyr)
+library(tidyr)
+library(DT)
+```
