@@ -1,8 +1,10 @@
 FROM rocker/rstudio:4.0.4
 
 RUN sudo apt-get update -y
-RUN sudo apt-get install -y libxml2-dev
+RUN sudo apt-get install -y libxt-dev
+RUN sudo apt-get install -y libx11-dev
 RUN sudo apt-get install -y libcairo2-dev
+RUN sudo apt-get install -y libxml2-dev
 
 RUN install2.r --error \
     --deps TRUE \
