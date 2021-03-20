@@ -24,6 +24,7 @@ library(DT)
 library(knitr)
 
 control_sheet_location <- '~/Internal controls'
+query_string <- '9\\.\\s*hét'
 ```
 
 ```{r}
@@ -110,6 +111,7 @@ tidyup_raw_file <- function(in_df){
     mutate(
       Site = file_name %>%
         str_extract("\\s+[A-Z]*\\s+\\d+\\.\\s*hét") %>%
+        str_replace("\\d+\\.\\s*hét", "") %>%
         trimws(),
       Mach = mach_tag,
       Sample = paste("M", sample_tag, sep = "_"),
@@ -125,6 +127,14 @@ t1 %>%
 
 ```{r message = FALSE, warning = FALSE}
 # Download all results matching the query pattern
-control_sheet_location %>%
+
+main_data <- control_sheet_location %>%
   drive_ls() %>%
+  filter(grepl(query_string, name)) %>%
+  .$id %>%
+  map(read_controlfile_from_drive) %>%
+  map(tidyup_raw_file) %>%
+  bind_rows()
+
+datatable(main_data)
 ```
