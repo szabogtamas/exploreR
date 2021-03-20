@@ -149,7 +149,12 @@ main_data %>%
   ggplot(aes(x = Mach, y = Value, color = Sample, group = Sample)) +
   geom_point() +
   geom_line() +
-  theme_bw()
+  theme_bw() +
+  theme(
+      panel.grid.major = element_blank(),
+      axis.text.x = element_text(angle = 30, hjust = 1), 
+  ) +
+  labs(x = "", y = "Serum level [U/L]")
 ```
 
 
