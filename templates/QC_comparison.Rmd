@@ -8,13 +8,123 @@ output:
       toc_collapsed: true
 ---
 
-## Workspace setup
-
+## Setup
 
 ```{r}
 # Import tools to be used
 
-library(dplyr)
 library(tidyr)
+library(dplyr)
+library(purrr)
+library(stringr)
+library(readxl)
+library(googledrive)
+library(ggplot2)
 library(DT)
+library(knitr)
+
+control_sheet_location <- '~/Internal controls'
+```
+
+```{r}
+# Set how Google Drive authentication should be done
+
+#drive_auth(use_oob=TRUE)
+drive_auth(cache = "/home/rstudio/local_files/.secrets", email = TRUE)
+```
+
+## Parse raw files
+
+```{r message = FALSE, warning = FALSE}
+# Define function that opens table from drive
+
+read_controlfile_from_drive <- function(drive_id) {
+  path <- drive_get(id = drive_id)
+  drive_download(path, overwrite = TRUE)
+  data_file <- path$name
+  data_table <- read_excel(data_file)
+  data_table$file_name <- data_file
+  unlink(data_file)
+  return(data_table)
+}
+
+t1 <- read_controlfile_from_drive('1J4-FYXHh0wS69evdVRwIU9WIZE3PknH7')
+datatable(t1)
+```
+
+```{r}
+# Define a function to tidy up by renaming columns first
+
+tidyup_raw_colnames <- function(in_df) {
+  
+  sample_tags <- unlist(in_df[1,])
+  
+  mach_names <- in_df %>%
+    colnames() %>%
+    {!grepl('^\\.\\.', .)} %>%
+    which() %>%
+    setNames(colnames(in_df)[.], .)
+  
+  coltags <- mach_names %>%
+    names() %>%
+    head(1) %>%
+    as.numeric() %>%
+    {rep("X", .-1)}
+    
+  for (i in seq(1, length(mach_names) - 1)){
+    pp <- as.numeric(names(mach_names))
+    mach <- mach_names[[i]]
+    coltags <- c(coltags, rep(mach, pp[[i+1]] - pp[[i]]))
+  }
+  coltags <- c(coltags, tail(mach_names, 1))
+  
+  column_meta <- data.frame(
+    mach_tag = coltags, sample_tag = sample_tags, stringsAsFactors = FALSE
+  )
+  column_meta$colunique <- ifelse(
+    column_meta$mach_tag %in% c("X", "file_name"), colnames(in_df),
+    paste("M_", column_meta$sample_tag, column_meta$mach_tag, sep = "")
+  )
+  
+  colnames(in_df) <- c("Param", "Unit", column_meta$colunique[c(-1, -2)])
+  
+  in_df <- in_df %>%
+    .[c(-1, -2),] %>%
+    pivot_longer(-one_of("Param", "Unit", "file_name")) %>%
+    left_join(column_meta, by = c(name = "colunique"))
+  
+  return(in_df)
+  
+}
+
+t2 <- tidyup_raw_colnames(t1)
+datatable(t2)
+```
+
+```{r}
+# Finally, wrap it all up into a single function
+
+tidyup_raw_file <- function(in_df){
+  in_df %>%
+    tidyup_raw_colnames() %>%
+    mutate(
+      Site = file_name %>%
+        str_extract("\\s+[A-Z]*\\s+\\d+\\.\\s*hét") %>%
+        trimws(),
+      Mach = mach_tag,
+      Sample = paste("M", sample_tag, sep = "_"),
+      Value = value
+    ) %>%
+    select(Site, Mach, Sample, Param, Unit, Value)
+}
+
+t1 %>%
+  tidyup_raw_file() %>%
+  datatable()
+```
+
+```{r message = FALSE, warning = FALSE}
+# Download all results matching the query pattern
+control_sheet_location %>%
+  drive_ls() %>%
 ```
