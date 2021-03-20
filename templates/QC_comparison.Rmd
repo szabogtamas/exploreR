@@ -145,9 +145,11 @@ datatable(main_data)
 # Interactively explore correlations between measurements
 
 main_data %>%
-  filter(Site == "KPLA" & Param == "LDH") %>%
-  ggplot(aes(x = Sample, y = Value, color = Mach)) +
-  geom_point()
+  filter(Param == "LDH") %>%
+  ggplot(aes(x = Mach, y = Value, color = Sample, group = Sample)) +
+  geom_point() +
+  geom_line() +
+  theme_bw()
 ```
 
 
