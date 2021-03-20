@@ -24,3 +24,5 @@ RUN R -e "devtools::install_github('kassambara/ggpubr')"
 
 ADD ./ /home/rstudio/repo_files
 RUN chmod a+rwx -R /home/rstudio
+ADD ./.Rprofile /home/rstudio/.Rprofile
+ENV R_PROFILE_USER /home/rstudio/.Rprofile
