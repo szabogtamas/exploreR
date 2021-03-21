@@ -20,6 +20,7 @@ library(stringr)
 library(readxl)
 library(googledrive)
 library(ggplot2)
+library(plotly)
 library(DT)
 library(knitr)
 
@@ -134,15 +135,166 @@ main_data <- control_sheet_location %>%
   .$id %>%
   map(read_controlfile_from_drive) %>%
   map(tidyup_raw_file) %>%
-  bind_rows()
+  bind_rows() %>%
+  filter(!(Param %in% c(NA, "44258")))
 
 datatable(main_data)
 ```
 
-## Show pairwise correlations
+## Show comparison for each Param
 
 ```{r message = FALSE, warning = FALSE}
 # Interactively explore correlations between measurements
+
+plotly_dt <- main_data  %>%
+  group_by(Param) %>%
+  group_split() %>%
+  setNames(unique(main_data$Param)) %>%
+  imap(function(dt, nm) {
+    list(data = dt, visible = FALSE)
+  }
+  )
+
+plotly_dt[1][[1]]$visible = TRUE
+steps <- list()
+ply <- plot_ly(height = 600, width = 800)
+
+for (i in seq_along(plotly_dt)) {
+    segment_dt <- plotly_dt[[i]]
+    SDT <- segment_dt$data
+    UNIT <- paste(unique(SDT$Unit), collapse=";")
+    N <- length(unique(SDT$Sample))
+    
+    for (SMPL in unique(SDT$Sample)) {
+      FDT <- SDT %>%
+        filter(Sample == SMPL) %>%
+        arrange(Mach)
+      
+      ply <- add_trace(
+        ply, x = FDT$Mach, y = FDT$Value, color = FDT$Sample, name = SMPL, type = "scatter",
+        mode = 'lines+markers', visible = segment_dt$visible, hoverinfo = "text",
+        text = paste("<b>Value</b>:", FDT$Value, "<br><b>Machine</b>:", FDT$Mach)
+      )
+    }
+    
+    step <- list(
+      args = list('visible', rep(FALSE, N*length(plotly_dt))),
+      method = 'restyle',
+      label = paste(names(plotly_dt)[[i]], "[", UNIT, "]")
+    )
+    
+    step$args[[2]][seq(1+N*(i-1), N+N*(i-1))] = TRUE  
+    steps[[i]] = step
+  }
+
+slider_settings <- list(
+  list(
+    active = 0, currentvalue = list(prefix = "Param: "),
+    steps = steps, pad = list(t = 90)
+  )
+)
+
+layout(
+  ply, plot_bgcolor  = 'rgba(0, 0, 0, 0)', paper_bgcolor = 'rgba(0, 0, 0, 0)',
+  autosize = FALSE, sliders = slider_settings, shapes = lines,
+  xaxis = list(
+    tickangle = 30, title = list(text = ""), showgrid = FALSE
+  ),
+  yaxis = list(title = list(text = "Serum level"), showgrid = FALSE)
+)
+```
+
+
+
+```{r message = FALSE, warning = FALSE}
+# Interactively explore correlations between measurements
+
+
+slidify_plotly_traces <- function(
+  plotly_df,
+  x_var, y_var, z_var = NULL, color_var = NULL,
+  trace_keywords = list(type = 'heatmap'),
+  height = 400,
+  width = 600,
+  grouping_var_name = 'grouping_name_',
+  grouping_var_prefix = '',
+  hover_text_selection = list(),
+  na_filling_df = NULL,
+  set_trace_names = TRUE,
+  slider_pad = 120
+  ) {
+    
+    
+  plotly_dt <- plotly_df  %>%
+    group_by(!!sym(grouping_var_name)) %>%
+    group_split() %>%
+    setNames(unique(plotly_df[[grouping_var_name]])) %>%
+    purrr::imap(function(dt, nm) {
+      list(data = dt, visible = FALSE, name = paste(grouping_var_prefix, nm, sep = ' '))
+    }
+    )
+
+  plotly_dt[1][[1]]$visible = TRUE
+  steps <- list()
+  ply <- plot_ly(height = height, width = width)
+  
+  for (i in seq_along(plotly_dt)) {
+    segment_dt <- plotly_dt[[i]] 
+    
+    if(!is.null(na_filling_df)){
+      segment_dt$data <- segment_dt$data %>%
+        right_join(na_filling_df, by = c(x_var, y_var))
+    }
+    
+    hover_text_formatted <- hover_text_selection %>%
+      purrr::map(function(x) segment_dt$data[[x]]) %>%
+      purrr::imap(~paste('<b>', .y, '<b>: ', .x)) %>%
+      c(list(sep = '<br>')) %>%
+      do.call(paste, .)
+
+    minimal_keywords <- list(
+      ply,
+      x = segment_dt$data[[x_var]],
+      y = segment_dt$data[[y_var]],
+      visible = segment_dt$visible
+    )
+    
+    if(set_trace_names) minimal_keywords[['name']] <- segment_dt$name
+    if(!is.null(z_var)) minimal_keywords[['z']] <- segment_dt$data[[z_var]]
+    if(!is.null(color_var)) minimal_keywords[['color']] <- segment_dt$data[[color_var]]
+    if(length(hover_text_selection) > 0){
+      minimal_keywords[['text']] <- hover_text_formatted
+      minimal_keywords[['hoverinfo']] <- 'text'
+    }
+
+    ply <- do.call(add_trace, c(minimal_keywords, trace_keywords))
+    
+    step <- list(
+      args = list('visible', rep(FALSE, length(plotly_dt))),
+      method = 'restyle',
+      label = names(plotly_dt)[[i]]
+    )
+    
+    step$args[[2]][i] = TRUE  
+    steps[[i]] = step
+  }
+  
+  if(length(steps) > 1){
+    slider_settings <- list(
+      list(
+        active = 0,
+        currentvalue = list(prefix = grouping_var_prefix),
+        steps = steps,
+        pad = list(t = slider_pad)
+      )
+    )
+  } else {
+    slider_settings <- NULL
+  }
+
+  return(list(slider_settings = slider_settings, plotly_traces = ply))
+
+}
 
 main_data %>%
   filter(Param == "LDH") %>%
