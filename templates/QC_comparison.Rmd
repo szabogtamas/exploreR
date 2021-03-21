@@ -219,7 +219,9 @@ layout(
 
 mean_measured_values <- main_data %>%
   group_by(Param, Sample) %>%
-  mutate(Base_mean = mean(Value, na.rm = TRUE)) %>%
+  mutate(
+    Base_mean = round(mean(Value, na.rm = TRUE), 3)
+  ) %>%
   ungroup() %>%
   distinct(Param, Sample, Base_mean)
 
@@ -246,12 +248,21 @@ datatable(pct_diff_values)
 for (MCH in unique(pct_diff_values$Mach)) {
   gg <- pct_diff_values %>%
     filter(Mach == MCH) %>%
-    mutate(Param = paste(Param, "[", Unit, "]")) %>%
-    ggplot(
-      aes(x = Param, y = pct_diff, color = Sample, label1 = Value, label2 = Base_mean)
-    ) +
+    mutate(
+      Param = paste(Param, "[", Unit, "]"),
+      PCT = paste(round(pct_diff, 2), "%", sep = ""),
+      pct_diff = pct_diff / 100
+    ) %>%
+    ggplot(aes(
+      x = Param, y = pct_diff, color = Sample, label1 = PCT,
+      label2 = Value, label3 = Base_mean, label4 = Unit
+    )) +
     geom_jitter(position=position_jitter(0.2), cex=0.5) +
+    geom_hline(
+      yintercept = c(-0.05, 0.05), linetype = "dashed", color = "red", size = 0.1
+    ) +
     #facet_grid("Mach") +
+    scale_y_continuous(labels = scales::percent_format(), limits = c(-0.15, 0.15)) +
     scale_color_npg() +
     theme_bw() +
     theme(
@@ -262,10 +273,10 @@ for (MCH in unique(pct_diff_values$Mach)) {
   
   p <- gg %>%
     ggplotly(
-      tooltip = c("x", "y", "label1", "label2"), height = 300, width = 800
+      tooltip = c("x", "label1", "label2", "label3", "label4"),
+      height = 300, width = 800
     ) %>%
     layout(
-      autosize = FALSE,
       plot_bgcolor  = 'rgba(0, 0, 0, 0)', paper_bgcolor = 'rgba(0, 0, 0, 0)'
     )
   print(p)
@@ -280,14 +291,22 @@ for (MCH in unique(pct_diff_values$Mach)) {
 for (SMPL in unique(pct_diff_values$Sample)) {
   gg <- pct_diff_values %>%
     filter(Sample == SMPL) %>%
-    mutate(Param = paste(Param, "[", Unit, "]")) %>%
-    ggplot(
-      aes(x = Param, y = pct_diff/100, color = Mach, label1 = Value, label2 = Base_mean)
+    mutate(
+      Param = paste(Param, "[", Unit, "]"),
+      PCT = paste(round(pct_diff, 2), "%", sep = ""),
+      pct_diff = pct_diff / 100
+    ) %>%
+    ggplot(aes(
+      x = Param, y = pct_diff, color = Mach, label1 = PCT,
+      label2 = Value, label3 = Base_mean, label4 = Unit
+    )) +
+    geom_jitter(position=position_jitter(0.2), cex=0.5) +
+    geom_hline(
+      yintercept = c(-0.05, 0.05), linetype = "dashed", color = "red", size = 0.1
     ) +
-    geom_jitter(position=position_jitter(0.2), cex=1) +
     #facet_grid("Mach") +
     scale_color_npg() +
-    scale_y_continuous(labels = scales::percent_format()) +
+    scale_y_continuous(labels = scales::percent_format(), limits = c(-0.15, 0.15)) +
     theme_bw() +
     theme(
         panel.grid.major = element_blank(),
@@ -297,10 +316,10 @@ for (SMPL in unique(pct_diff_values$Sample)) {
   
   p <- gg %>%
     ggplotly(
-      tooltip = c("x", "y", "label1", "label2"), height = 300, width = 800
+      tooltip = c("x", "label1", "label2", "label3", "label4"),
+      height = 300, width = 800
     ) %>%
     layout(
-      autosize = FALSE,
       plot_bgcolor  = 'rgba(0, 0, 0, 0)', paper_bgcolor = 'rgba(0, 0, 0, 0)'
     )
   print(p)
