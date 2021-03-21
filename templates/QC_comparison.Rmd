@@ -21,6 +21,8 @@ library(readxl)
 library(googledrive)
 library(ggplot2)
 library(ggsci)
+library(ggpubr)
+library(rstatix)
 library(plotly)
 library(DT)
 library(knitr)
@@ -326,7 +328,57 @@ for (SMPL in unique(pct_diff_values$Sample)) {
 }
 ```
 
+## ANOVA
+
+```{r}
+# For each sample and Param, a separate ANOVA is needed
+
+anova_dt <- main_data %>%
+  mutate(logVal = log(Value)) %>%
+  group_split(Sample, Param)
+
+sample_anova_dt <- anova_dt[[1]]
+datatable(sample_anova_dt)
+```
+
+```{r}
+# Build the linear model
+
+model  <- lm(logVal ~ Mach, data = sample_anova_dt)
+summary(model)
+```
+
+```{r}
+# Create a QQ plot of residuals
+
+ggqqplot(residuals(model))
+```
+
+```{r}
+# Compute Shapiro-Wilk test of normality
+
+shapiro_test(residuals(model))
+```
+
+```{r}
+ggqqplot(sample_anova_dt, "Value", facet.by = "Mach")
+```
 
 
 
+
+```{r message = FALSE, warning = FALSE}
+# Download all results matching the query pattern
+
+main_data <- control_sheet_location %>%
+  drive_ls() %>%
+  filter(grepl(query_string, name)) %>%
+  .$id %>%
+  map(read_controlfile_from_drive) %>%
+  map(tidyup_raw_file) %>%
+  bind_rows() %>%
+  filter(!(Param %in% c(NA, "44258")))
+
+datatable(main_data)
+```
 
