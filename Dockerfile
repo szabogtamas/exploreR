@@ -29,3 +29,4 @@ ADD ./ /home/rstudio/repo_files
 RUN chmod a+rwx -R /home/rstudio
 ADD ./.Rprofile /home/rstudio/.Rprofile
 ENV R_PROFILE_USER /home/rstudio/.Rprofile
+ADD ./rstudio-prefs.json /home/rstudio/.config/rstudio/rstudio-prefs.json
