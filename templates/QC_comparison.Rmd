@@ -218,10 +218,10 @@ layout(
 # Calculate percent difference from mean
 
 mean_measured_values <- main_data %>%
-  group_by(Param) %>%
+  group_by(Param, Sample) %>%
   mutate(Base_mean = mean(Value, na.rm = TRUE)) %>%
   ungroup() %>%
-  distinct(Param, Base_mean)
+  distinct(Param, Sample, Base_mean)
 
 datatable(mean_measured_values)
 ```
@@ -230,7 +230,7 @@ datatable(mean_measured_values)
 # Calculate percent difference from mean
 
 pct_diff_values <- main_data %>%
-  left_join(mean_measured_values, by = "Param") %>%
+  left_join(mean_measured_values, by = c("Param", "Sample")) %>%
   mutate(
     pct_diff = 100* (Value - Base_mean) / Base_mean
   )
@@ -238,10 +238,10 @@ pct_diff_values <- main_data %>%
 datatable(pct_diff_values)
 ```
 
-### Difference by Machines
+### Difference by Machine
 
 ```{r message = FALSE, warning = FALSE}
-# Interactively show pct_differences
+# Interactively show pct_differences by site / machine
 
 for (MCH in unique(pct_diff_values$Mach)) {
   gg <- pct_diff_values %>%
@@ -250,7 +250,7 @@ for (MCH in unique(pct_diff_values$Mach)) {
     ggplot(
       aes(x = Param, y = pct_diff, color = Sample, label1 = Value, label2 = Base_mean)
     ) +
-    geom_jitter(position=position_jitter(0.2)) +
+    geom_jitter(position=position_jitter(0.2), cex=0.5) +
     #facet_grid("Mach") +
     scale_color_npg() +
     theme_bw() +
@@ -265,9 +265,49 @@ for (MCH in unique(pct_diff_values$Mach)) {
       tooltip = c("x", "y", "label1", "label2"), height = 300, width = 800
     ) %>%
     layout(
-      autosize = FALSE, yaxis = list(ticksuffix = "%"),
+      autosize = FALSE,
       plot_bgcolor  = 'rgba(0, 0, 0, 0)', paper_bgcolor = 'rgba(0, 0, 0, 0)'
     )
   print(p)
 }
 ```
+
+### Difference by Sample
+
+```{r message = FALSE, warning = FALSE}
+# Interactively show pct_differences by sample
+
+for (SMPL in unique(pct_diff_values$Sample)) {
+  gg <- pct_diff_values %>%
+    filter(Sample == SMPL) %>%
+    mutate(Param = paste(Param, "[", Unit, "]")) %>%
+    ggplot(
+      aes(x = Param, y = pct_diff/100, color = Mach, label1 = Value, label2 = Base_mean)
+    ) +
+    geom_jitter(position=position_jitter(0.2), cex=1) +
+    #facet_grid("Mach") +
+    scale_color_npg() +
+    scale_y_continuous(labels = scales::percent_format()) +
+    theme_bw() +
+    theme(
+        panel.grid.major = element_blank(),
+        axis.text.x = element_text(angle = 30, hjust = 1), 
+    ) +
+    labs(x = "", y = "Percent difference from mean", title = paste("Sample tested:", SMPL))
+  
+  p <- gg %>%
+    ggplotly(
+      tooltip = c("x", "y", "label1", "label2"), height = 300, width = 800
+    ) %>%
+    layout(
+      autosize = FALSE,
+      plot_bgcolor  = 'rgba(0, 0, 0, 0)', paper_bgcolor = 'rgba(0, 0, 0, 0)'
+    )
+  print(p)
+}
+```
+
+
+
+
+
