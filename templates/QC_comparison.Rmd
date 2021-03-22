@@ -138,12 +138,13 @@ datatable(mean_measured_values)
 ```
 
 ```{r message = FALSE, warning = FALSE}
-# Calculate percent difference from mean and rder parameters by precision
+# Calculate percent difference from mean and order parameters by precision
 
 main_data <- main_data %>%
   left_join(mean_measured_values, by = c("Param", "Sample")) %>%
   mutate(
-    pct_diff = 100* (Value - Base_mean) / Base_mean
+    pct_diff = 100* (Value - Base_mean) / Base_mean,
+    pct_diff = round(pct_diff, 3)
   )
 
 param_order <- main_data %>%
@@ -151,7 +152,7 @@ param_order <- main_data %>%
   mutate(
     Problem_size = pct_diff %>%
       abs() %>%
-      mean(rm.na = TRUE)
+      max(rm.na = TRUE)
   ) %>%
   ungroup() %>%
   distinct(Param, Problem_size) %>%
@@ -173,10 +174,9 @@ color_names <- main_data %>%
   unique() %>%
   setNames(pal_npg()(length(.)), .)
 
-plotly_dt <- main_data  %>%
-  group_by(Param) %>%
-  group_split() %>%
-  setNames(unique(main_data$Param)) %>%
+plotly_dt <- param_order %>%
+  setNames(., .) %>%
+  map(~filter(main_data, Param == .x))  %>%
   imap(function(dt, nm) {
     list(data = dt, visible = FALSE)
   }
@@ -201,7 +201,10 @@ for (i in seq_along(plotly_dt)) {
       ply <- add_trace(
         ply, x = FDT$Mach, y = FDT$Value, name = SMPL, type = "scatter",
         mode = 'lines+markers', visible = segment_dt$visible, hoverinfo = "text",
-        text = paste("<b>Value</b>:", FDT$Value, "<br><b>Machine</b>:", FDT$Mach),
+        text = paste(
+          "<b>Value</b>:", FDT$Value, FDT$Unit, "<br><b>Parameter</b>:", FDT$Param,
+          "<br><b>Diff</b>:", FDT$pct_diff, "%<br><b>Machine</b>:", FDT$Mach
+        ),
         marker = list(color = color), line = list(color = color)
       )
     }
@@ -242,7 +245,8 @@ layout(
 main_data %>%
   ggline(
     x = "Param", y = "pct_diff", color = "Mach", add = c("mean_se", "dotplot"),
-    facet.by = "Mach", ncol = 1, x.text.angle = 30, palette = pal_npg()(9)
+    facet.by = "Mach", ncol = 1, font.xtickslab = c(8, "plain", "black"),
+    x.text.angle = 30, legend = "right", xlab = "", palette = pal_npg()(9)
   )
 ```
 
@@ -255,7 +259,6 @@ for (MCH in unique(main_data$Mach)) {
   gg <- main_data %>%
     filter(Mach == MCH) %>%
     mutate(
-      Param = paste(Param, "[", Unit, "]"),
       PCT = paste(round(pct_diff, 2), "%", sep = ""),
       pct_diff = pct_diff / 100
     ) %>%
@@ -298,7 +301,6 @@ for (SMPL in unique(main_data$Sample)) {
   gg <- main_data %>%
     filter(Sample == SMPL) %>%
     mutate(
-      Param = paste(Param, "[", Unit, "]"),
       PCT = paste(round(pct_diff, 2), "%", sep = ""),
       pct_diff = pct_diff / 100
     ) %>%
@@ -335,83 +337,71 @@ for (SMPL in unique(main_data$Sample)) {
 
 ## ANOVA
 
+### Prerequisites
+
 As the samples are not replicates with the same target value, we need to use the
 percent difference derivation of the raw values for the ANOVA.  
 The tested hypothesis would then be if there is a difference in precision between
 the machines.
 
-
-```{r}
-# Build a linear model for how PCT_diff depends on Machine selection
-
-one_way_model <- main_data %>%
-  mutate(
-    Mach = factor(Mach),
-    Param = factor(Param)
-  ) %>%
-  lm(pct_diff ~ Mach, data = .)
-
-summary(one_way_model)
-```
-
-```{r}
+```{r message = FALSE, warning = FALSE, fig.width = 8, fig.height = 12}
 # Check distribution of pct_diff values
 
 main_data %>%
-  ggqqplot("pct_diff", facet.by = "Mach") %>%
+  ggqqplot("pct_diff", facet.by = "Mach", ncol = 1) %>%
   ggpar(main = "Empirical and theoretical distribution of differences", ylab = "PCT")
 ```
 
-```{r}
-# Compute Shapiro-Wilk test of normality
+### Results
 
-main_data %>%
-  shapiro_test(pct_diff)
+```{r message = FALSE, warning = FALSE}
+# Compute a non-parametric ANOVA for each parameter
+
+figlist <- list()
+statlist <- list()
+
+for (PARAM in param_order) {
+  pr_data <- filter(main_data, Param == PARAM)
+  
+  res.kruskal <- pr_data %>%
+    kruskal_test(pct_diff ~ Mach)
+    
+  pwc <- pr_data %>%
+    dunn_test(pct_diff ~ Mach, p.adjust.method = "bonferroni") %>%
+    add_xy_position(x = "group")
+    
+  p <- pr_data %>%
+    ggboxplot(
+      x = "Mach", y = "pct_diff", x.text.angle = 30
+    ) +
+    stat_pvalue_manual(pwc, hide.ns = TRUE) +
+    labs(
+      title = paste("Differences for", PARAM),
+      subtitle = get_test_label(res.kruskal, detailed = TRUE),
+      caption = get_pwc_label(pwc),
+      x = "", y = "Percent difference\n"
+      )
+  
+  figlist[[PARAM]] <- p
+  statlist[[PARAM]] <- pwc
+}
+
+final_stat <- statlist %>%
+  imap(~mutate(.x, param = .y)) %>%
+  bind_rows %>%
+  select(param, p, p.adj, group1, group2) %>%
+  arrange(p.adj)
+
+datatable(final_stat)
 ```
-Distribution of percentage values is not normal, so non-parametric (Kruskal - Wallis)
-tests are needed.
-
-```{r message = FALSE, warning = FALSE, fig.width = 8, fig.height = 12}
-# Compute KW test
-
-main_data %>%
-  kruskal_test(pct_diff ~ Mach)
-```
-
-```{r message = FALSE, warning = FALSE, fig.width = 8, fig.height = 12}
-# Compute effect sizes
-
-main_data %>%
-  kruskal_effsize(pct_diff ~ Mach)
-```
-
-```{r message = FALSE, warning = FALSE, fig.width = 8, fig.height = 12}
-# Compute Dunn's post hoc test
-
-main_data %>%
-  dunn_test(pct_diff ~ Mach, p.adjust.method = "bonferroni")
-```
 
 
 
-```{r message = FALSE, warning = FALSE, fig.width = 8, fig.height = 12}
+```{r message = FALSE, warning = FALSE}
 # Report differences on figure
 
-res.kruskal <- main_data %>%
-  kruskal_test(pct_diff ~ Mach)
-
-pwc <- main_data %>%
-  dunn_test(pct_diff ~ Mach, p.adjust.method = "bonferroni") %>%
-  add_xy_position(x = "group")
-
-main_data %>%
-  ggboxplot(
-    x = "Mach", y = "pct_diff", x.text.angle = 30
-  ) +
-  stat_pvalue_manual(pwc, hide.ns = TRUE) +
-  labs(
-    subtitle = get_test_label(res.kruskal, detailed = TRUE),
-    caption = get_pwc_label(pwc)
-    )
+for(p in figlist) {
+  print(p)
+}
 ```
 
