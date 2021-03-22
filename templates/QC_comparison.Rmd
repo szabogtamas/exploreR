@@ -236,7 +236,9 @@ layout(
 )
 ```
 
+
 ## Percent difference (precision)
+
 ### Summary of differences
 
 ```{r message = FALSE, warning = FALSE, fig.width = 8, fig.height = 12}
@@ -254,6 +256,8 @@ main_data %>%
 
 ```{r message = FALSE, warning = FALSE}
 # Interactively show pct_differences by site / machine
+
+figlist <- list()
 
 for (MCH in unique(main_data$Mach)) {
   gg <- main_data %>%
@@ -288,6 +292,15 @@ for (MCH in unique(main_data$Mach)) {
     layout(
       plot_bgcolor  = 'rgba(0, 0, 0, 0)', paper_bgcolor = 'rgba(0, 0, 0, 0)'
     )
+  
+  figlist[[MCH]] <- p
+}
+```
+
+```{r message = FALSE, warning = FALSE}
+# Show figures in report
+
+for(p in figlist) {
   print(p)
 }
 ```
@@ -296,6 +309,8 @@ for (MCH in unique(main_data$Mach)) {
 
 ```{r message = FALSE, warning = FALSE}
 # Interactively show pct_differences by sample
+
+figlist <- list()
 
 for (SMPL in unique(main_data$Sample)) {
   gg <- main_data %>%
@@ -330,10 +345,18 @@ for (SMPL in unique(main_data$Sample)) {
     layout(
       plot_bgcolor  = 'rgba(0, 0, 0, 0)', paper_bgcolor = 'rgba(0, 0, 0, 0)'
     )
-  print(p)
+
+  figlist[[SMPL]] <- p
 }
 ```
 
+```{r message = FALSE, warning = FALSE}
+# Show figures in report
+
+for(p in figlist) {
+  print(p)
+}
+```
 
 ## ANOVA
 
@@ -395,8 +418,6 @@ final_stat <- statlist %>%
 datatable(final_stat)
 ```
 
-
-
 ```{r message = FALSE, warning = FALSE}
 # Report differences on figure
 
@@ -404,4 +425,3 @@ for(p in figlist) {
   print(p)
 }
 ```
-
