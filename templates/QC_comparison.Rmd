@@ -27,7 +27,7 @@ library(plotly)
 library(DT)
 library(knitr)
 
-control_sheet_location <- '~/Internal controls'
+control_sheet_location <- '~/Internal controls/Datasets'
 query_string <- '9\\.\\s*hét'
 ```
 
