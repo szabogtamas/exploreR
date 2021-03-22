@@ -10,7 +10,7 @@ output:
 
 ## Setup
 
-```{r message = FALSE, warning = FALSE}
+```{r}
 # Import tools to be used
 
 library(tidyr)
@@ -51,6 +51,13 @@ read_controlfile_from_drive <- function(drive_id) {
   unlink(data_file)
   return(data_table)
 }
+
+t1 <- read_controlfile_from_drive('1J4-FYXHh0wS69evdVRwIU9WIZE3PknH7')
+datatable(t1)
+```
+
+```{r}
+# Define a function to tidy up by renaming columns first
 
 tidyup_raw_colnames <- function(in_df) {
   
@@ -94,6 +101,13 @@ tidyup_raw_colnames <- function(in_df) {
   
 }
 
+t2 <- tidyup_raw_colnames(t1)
+datatable(t2)
+```
+
+```{r}
+# Finally, wrap it all up into a single function
+
 tidyup_raw_file <- function(in_df){
   in_df %>%
     tidyup_raw_colnames() %>%
@@ -108,14 +122,14 @@ tidyup_raw_file <- function(in_df){
     ) %>%
     select(Site, Mach, Sample, Param, Unit, Value)
 }
+
+t1 %>%
+  tidyup_raw_file() %>%
+  datatable()
 ```
 
-As the ground truth is unknown, the mean of measurements at different sites for
-the same sample will be taken as reference.  
-Values calculated after downloading reported results:
-
 ```{r message = FALSE, warning = FALSE}
-# Download all results matching the query pattern and add a percent difference measure
+# Download all results matching the query pattern
 
 main_data <- control_sheet_location %>%
   drive_ls() %>%
@@ -126,44 +140,10 @@ main_data <- control_sheet_location %>%
   bind_rows() %>%
   filter(!(Param %in% c(NA, "44258")))
 
-mean_measured_values <- main_data %>%
-  group_by(Param, Sample) %>%
-  mutate(
-    Base_mean = round(mean(Value, na.rm = TRUE), 3)
-  ) %>%
-  ungroup() %>%
-  distinct(Param, Sample, Base_mean)
-
-datatable(mean_measured_values)
-```
-
-```{r message = FALSE, warning = FALSE}
-# Calculate percent difference from mean and rder parameters by precision
-
-main_data <- main_data %>%
-  left_join(mean_measured_values, by = c("Param", "Sample")) %>%
-  mutate(
-    pct_diff = 100* (Value - Base_mean) / Base_mean
-  )
-
-param_order <- main_data %>%
-  group_by(Param) %>%
-  mutate(
-    Problem_size = pct_diff %>%
-      abs() %>%
-      mean(rm.na = TRUE)
-  ) %>%
-  ungroup() %>%
-  distinct(Param, Problem_size) %>%
-  arrange(desc(Problem_size)) %>%
-  .$Param
-  
-main_data$Param <- factor(main_data$Param, levels = param_order)
-
 datatable(main_data)
 ```
 
-## Parameter-wise overview
+## Show comparison for each Param
 
 ```{r message = FALSE, warning = FALSE}
 # Interactively explore correlations between measurements
@@ -233,26 +213,42 @@ layout(
 )
 ```
 
-## Percent difference (precision)
-### Summary of differences
+## Percent difference from mean
+### Calculation tables
 
-```{r message = FALSE, warning = FALSE, fig.width = 8, fig.height = 12}
-# Non-interactive summary
+```{r message = FALSE, warning = FALSE}
+# Calculate percent difference from mean
 
-main_data %>%
-  ggline(
-    x = "Param", y = "pct_diff", color = "Mach", add = c("mean_se", "dotplot"),
-    facet.by = "Mach", ncol = 1, x.text.angle = 30, palette = pal_npg()(9)
-  )
+mean_measured_values <- main_data %>%
+  group_by(Param, Sample) %>%
+  mutate(
+    Base_mean = round(mean(Value, na.rm = TRUE), 3)
+  ) %>%
+  ungroup() %>%
+  distinct(Param, Sample, Base_mean)
+
+datatable(mean_measured_values)
 ```
 
-### Precision by Machine
+```{r message = FALSE, warning = FALSE}
+# Calculate percent difference from mean
+
+pct_diff_values <- main_data %>%
+  left_join(mean_measured_values, by = c("Param", "Sample")) %>%
+  mutate(
+    pct_diff = 100* (Value - Base_mean) / Base_mean
+  )
+
+datatable(pct_diff_values)
+```
+
+### Difference by Machine
 
 ```{r message = FALSE, warning = FALSE}
 # Interactively show pct_differences by site / machine
 
-for (MCH in unique(main_data$Mach)) {
-  gg <- main_data %>%
+for (MCH in unique(pct_diff_values$Mach)) {
+  gg <- pct_diff_values %>%
     filter(Mach == MCH) %>%
     mutate(
       Param = paste(Param, "[", Unit, "]"),
@@ -289,13 +285,13 @@ for (MCH in unique(main_data$Mach)) {
 }
 ```
 
-### Precision by Sample
+### Difference by Sample
 
 ```{r message = FALSE, warning = FALSE}
 # Interactively show pct_differences by sample
 
-for (SMPL in unique(main_data$Sample)) {
-  gg <- main_data %>%
+for (SMPL in unique(pct_diff_values$Sample)) {
+  gg <- pct_diff_values %>%
     filter(Sample == SMPL) %>%
     mutate(
       Param = paste(Param, "[", Unit, "]"),
@@ -332,6 +328,17 @@ for (SMPL in unique(main_data$Sample)) {
 }
 ```
 
+### Summary of differences
+
+```{r message = FALSE, warning = FALSE, fig.width = 8, fig.height = 12}
+# Non-interactive summary
+
+pct_diff_values %>%
+  ggline(
+    x = "Param", y = "pct_diff", color = "Mach", add = c("mean_se", "dotplot"),
+    facet.by = "Mach", ncol = 1, x.text.angle = 30, palette = pal_npg()(9)
+  )
+```
 
 ## ANOVA
 
@@ -344,7 +351,7 @@ the machines.
 ```{r}
 # Build a linear model for how PCT_diff depends on Machine selection
 
-one_way_model <- main_data %>%
+one_way_model <- pct_diff_values %>%
   mutate(
     Mach = factor(Mach),
     Param = factor(Param)
@@ -357,7 +364,7 @@ summary(one_way_model)
 ```{r}
 # Check distribution of pct_diff values
 
-main_data %>%
+pct_diff_values %>%
   ggqqplot("pct_diff", facet.by = "Mach") %>%
   ggpar(main = "Empirical and theoretical distribution of differences", ylab = "PCT")
 ```
@@ -365,7 +372,7 @@ main_data %>%
 ```{r}
 # Compute Shapiro-Wilk test of normality
 
-main_data %>%
+pct_diff_values %>%
   shapiro_test(pct_diff)
 ```
 Distribution of percentage values is not normal, so non-parametric (Kruskal - Wallis)
@@ -374,21 +381,21 @@ tests are needed.
 ```{r message = FALSE, warning = FALSE, fig.width = 8, fig.height = 12}
 # Compute KW test
 
-main_data %>%
+pct_diff_values %>%
   kruskal_test(pct_diff ~ Mach)
 ```
 
 ```{r message = FALSE, warning = FALSE, fig.width = 8, fig.height = 12}
 # Compute effect sizes
 
-main_data %>%
+pct_diff_values %>%
   kruskal_effsize(pct_diff ~ Mach)
 ```
 
 ```{r message = FALSE, warning = FALSE, fig.width = 8, fig.height = 12}
 # Compute Dunn's post hoc test
 
-main_data %>%
+pct_diff_values %>%
   dunn_test(pct_diff ~ Mach, p.adjust.method = "bonferroni")
 ```
 
@@ -397,14 +404,14 @@ main_data %>%
 ```{r message = FALSE, warning = FALSE, fig.width = 8, fig.height = 12}
 # Report differences on figure
 
-res.kruskal <- main_data %>%
+res.kruskal <- pct_diff_values %>%
   kruskal_test(pct_diff ~ Mach)
 
-pwc <- main_data %>%
+pwc <- pct_diff_values %>%
   dunn_test(pct_diff ~ Mach, p.adjust.method = "bonferroni") %>%
   add_xy_position(x = "group")
 
-main_data %>%
+pct_diff_values %>%
   ggboxplot(
     x = "Mach", y = "pct_diff", x.text.angle = 30
   ) +
