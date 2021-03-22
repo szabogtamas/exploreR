@@ -328,57 +328,75 @@ for (SMPL in unique(pct_diff_values$Sample)) {
 }
 ```
 
+### Summary of differences
+
+```{r message = FALSE, warning = FALSE, fig.width = 8, fig.height = 12}
+# Non-interactive summary
+
+pct_diff_values %>%
+  ggline(
+    x = "Param", y = "pct_diff", color = "Mach", add = c("mean_se", "dotplot"),
+    facet.by = "Mach", ncol = 1, x.text.angle = 30, palette = pal_npg()(9)
+  )
+```
+
 ## ANOVA
 
+As the samples are not replicates with the same target value, we need to use the
+percent difference derivation of the raw values for the ANOVA.  
+The tested hypothesis would then be if there is a difference in precision between
+the machines.
+
+
 ```{r}
-# For each sample and Param, a separate ANOVA is needed
+# Build a linear model for how PCT_diff depends on Machine selection
 
-anova_dt <- main_data %>%
-  mutate(logVal = log(Value)) %>%
-  group_split(Sample, Param)
+one_way_model <- pct_diff_values %>%
+  mutate(
+    Mach = factor(Mach),
+    Param = factor(Param)
+  ) %>%
+  lm(pct_diff ~ Mach, data = .)
 
-sample_anova_dt <- anova_dt[[1]]
-datatable(sample_anova_dt)
+summary(one_way_model)
 ```
 
 ```{r}
-# Build the linear model
+# Check distribution of pct_diff values
 
-model  <- lm(logVal ~ Mach, data = sample_anova_dt)
-summary(model)
-```
-
-```{r}
-# Create a QQ plot of residuals
-
-ggqqplot(residuals(model))
+pct_diff_values %>%
+  ggqqplot("pct_diff", facet.by = "Mach") %>%
+  ggpar(main = "Empirical and theoretical distribution of differences", ylab = "PCT")
 ```
 
 ```{r}
 # Compute Shapiro-Wilk test of normality
 
-shapiro_test(residuals(model))
+pct_diff_values %>%
+  shapiro_test(pct_diff)
+```
+Distribution of percentage values is not normal, so non-parametric (Kruskal - Wallis)
+tests are needed.
+
+```{r message = FALSE, warning = FALSE, fig.width = 8, fig.height = 12}
+# Compute KW test
+
+pct_diff_values %>%
+  kruskal_test(pct_diff ~ Mach)
 ```
 
-```{r}
-ggqqplot(sample_anova_dt, "Value", facet.by = "Mach")
-```
 
 
 
 
-```{r message = FALSE, warning = FALSE}
+
+```{r message = FALSE, warning = FALSE, fig.width = 8, fig.height = 12}
 # Download all results matching the query pattern
 
-main_data <- control_sheet_location %>%
-  drive_ls() %>%
-  filter(grepl(query_string, name)) %>%
-  .$id %>%
-  map(read_controlfile_from_drive) %>%
-  map(tidyup_raw_file) %>%
-  bind_rows() %>%
-  filter(!(Param %in% c(NA, "44258")))
-
-datatable(main_data)
+pct_diff_values %>%
+  ggline(
+    x = "Param", y = "pct_diff", color = "Mach", add = c("mean_se", "dotplot"),
+    facet.by = "Mach", ncol = 1, x.text.angle = 30, palette = pal_npg()(9)
+  )
 ```
 
