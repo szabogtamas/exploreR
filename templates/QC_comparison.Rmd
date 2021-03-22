@@ -385,18 +385,40 @@ pct_diff_values %>%
   kruskal_test(pct_diff ~ Mach)
 ```
 
+```{r message = FALSE, warning = FALSE, fig.width = 8, fig.height = 12}
+# Compute effect sizes
 
+pct_diff_values %>%
+  kruskal_effsize(pct_diff ~ Mach)
+```
 
+```{r message = FALSE, warning = FALSE, fig.width = 8, fig.height = 12}
+# Compute Dunn's post hoc test
+
+pct_diff_values %>%
+  dunn_test(pct_diff ~ Mach, p.adjust.method = "bonferroni")
+```
 
 
 
 ```{r message = FALSE, warning = FALSE, fig.width = 8, fig.height = 12}
-# Download all results matching the query pattern
+# Report differences on figure
+
+res.kruskal <- pct_diff_values %>%
+  kruskal_test(pct_diff ~ Mach)
+
+pwc <- pct_diff_values %>%
+  dunn_test(pct_diff ~ Mach, p.adjust.method = "bonferroni") %>%
+  add_xy_position(x = "group")
 
 pct_diff_values %>%
-  ggline(
-    x = "Param", y = "pct_diff", color = "Mach", add = c("mean_se", "dotplot"),
-    facet.by = "Mach", ncol = 1, x.text.angle = 30, palette = pal_npg()(9)
-  )
+  ggboxplot(
+    x = "Mach", y = "pct_diff", x.text.angle = 30
+  ) +
+  stat_pvalue_manual(pwc, hide.ns = TRUE) +
+  labs(
+    subtitle = get_test_label(res.kruskal, detailed = TRUE),
+    caption = get_pwc_label(pwc)
+    )
 ```
 
