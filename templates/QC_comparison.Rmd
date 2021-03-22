@@ -347,6 +347,144 @@ htmltools::tagList(figlist)
 ```
 
 
+## Pairwise Paired t-tests
+
+### Non-parametic test
+
+```{r message = FALSE, warning = FALSE}
+# Compare actual value to base_mean for all Params
+
+statlist <- list()
+
+for (PARAM in param_order) {
+  
+  pr_data <- main_data %>%
+    filter(Param == PARAM) %>%
+    select(Mach, Value, Base_mean) %>%
+    group_by(Mach) %>%
+    group_split() %>%
+    map(function(x){
+      x2 <- filter(x, !is.na(Value))
+      if (nrow(x2) > 3){
+        st <- wilcox.test(x2$Value, x2$Base_mean, paired = TRUE, alternative = "two.sided")
+        st <- data.frame(Param = PARAM, Mach = unique(x$Mach), p.value = st$p.value)
+      } else {
+        st <- data.frame(Param = PARAM, Mach = unique(x$Mach), p.value = 1)
+      }
+      return(st)
+    }) %>%
+    bind_rows()
+  
+  statlist[[PARAM]] <- pr_data
+}
+
+paired_wx_res <- statlist %>%
+  bind_rows() %>%
+  mutate(
+    p.adj = p.adjust(p.value)
+  ) %>%
+  right_join(main_data, by = c("Mach", "Param")) %>%
+  arrange(p.value)
+
+datatable(paired_wx_res)
+```
+
+## Parametric test after lognormalization
+
+```{r message = FALSE, warning = FALSE}
+# Compare actual value to base_mean for all Params
+
+statlist <- list()
+
+for (PARAM in param_order) {
+  
+  pr_data <- main_data %>%
+    filter(Param == PARAM) %>%
+    select(Mach, Value, Base_mean) %>%
+    mutate(
+      Value = log(Value),
+      Base_mean = log(Base_mean)
+    ) %>%
+    group_by(Mach) %>%
+    group_split() %>%
+    map(function(x){
+      x2 <- filter(x, !is.na(Value))
+      if (nrow(x2) > 3){
+        st <- t.test(x2$Value, x2$Base_mean, paired = TRUE, alternative = "two.sided")
+        st <- data.frame(Param = PARAM, Mach = unique(x$Mach), p.value = st$p.value)
+      } else {
+        st <- data.frame(Param = PARAM, Mach = unique(x$Mach), p.value = 1)
+      }
+      return(st)
+    }) %>%
+    bind_rows()
+  
+  statlist[[PARAM]] <- pr_data
+}
+
+paired_tt_res <- statlist %>%
+  bind_rows() %>%
+  mutate(
+    p.adj = p.adjust(p.value)
+  ) %>%
+  right_join(main_data, by = c("Mach", "Param")) %>%
+  arrange(p.value)
+
+datatable(paired_tt_res)
+```
+
+### Precision vs. pvalue
+
+
+```{r message = FALSE, warning = FALSE}
+# Volcano-like plot
+
+gg <- paired_tt_res %>%
+  group_by(Mach, Param) %>%
+  mutate(
+    meanDiff = mean(pct_diff, rm.na=TRUE)
+  ) %>%
+  ungroup() %>%
+  mutate(
+    logP = -1 * log10(p.adj),
+    #logP = -1 * log10(p.value),
+    meanDiff = meanDiff / 100 %>%
+      round(3),
+    PCT = paste(100 * meanDiff, "%"),
+    adjustedP = p.adj
+  ) %>%
+  distinct(meanDiff, logP, PCT, adjustedP, Param, Mach) %>%
+  ggplot(aes(
+    x = meanDiff, y = logP, color = Mach, label1 = PCT, label2 = Param,
+    label3 = Mach, label4 = adjustedP
+  )) +
+  geom_point(cex=0.5) +
+  geom_hline(
+    yintercept = -log10(0.05), linetype = "dashed", color = "red", size = 0.1
+  ) +
+  geom_vline(
+    xintercept = c(-0.05, 0.05), linetype = "dashed", color = "red", size = 0.1
+  ) +
+  scale_x_continuous(labels = scales::percent_format()) +
+  scale_color_npg() +
+  theme_bw() +
+  theme(
+      panel.grid.major = element_blank(),
+      axis.text.x = element_text(angle = 30, hjust = 1), 
+  ) +
+  labs(x = "Mean difference", y = "-log10(P)")
+
+gg %>%
+  ggplotly(
+    tooltip = c("x", "label1", "label2", "label3", "label4"),
+    height = 600, width = 800
+  ) %>%
+  layout(
+    plot_bgcolor  = 'rgba(0, 0, 0, 0)', paper_bgcolor = 'rgba(0, 0, 0, 0)'
+  )
+```
+
+
 ## ANOVA
 
 ### Prerequisites
