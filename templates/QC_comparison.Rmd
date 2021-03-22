@@ -295,14 +295,8 @@ for (MCH in unique(main_data$Mach)) {
   
   figlist[[MCH]] <- p
 }
-```
 
-```{r message = FALSE, warning = FALSE}
-# Show figures in report
-
-for(p in figlist) {
-  print(p)
-}
+htmltools::tagList(figlist)
 ```
 
 ### Precision by Sample
@@ -348,15 +342,10 @@ for (SMPL in unique(main_data$Sample)) {
 
   figlist[[SMPL]] <- p
 }
+
+htmltools::tagList(figlist)
 ```
 
-```{r message = FALSE, warning = FALSE}
-# Show figures in report
-
-for(p in figlist) {
-  print(p)
-}
-```
 
 ## ANOVA
 
@@ -374,6 +363,16 @@ main_data %>%
   ggqqplot("pct_diff", facet.by = "Mach", ncol = 1) %>%
   ggpar(main = "Empirical and theoretical distribution of differences", ylab = "PCT")
 ```
+
+```{r}
+# Compute Shapiro-Wilk test of normality
+
+main_data %>%
+  shapiro_test(pct_diff)
+```
+
+Distribution of percentage values is not normal, so non-parametric (Kruskal - Wallis)
+tests are needed.
 
 ### Results
 
