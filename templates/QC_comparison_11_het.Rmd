@@ -28,7 +28,7 @@ library(DT)
 library(knitr)
 
 control_sheet_location <- '~/Internal controls/Datasets'
-query_string <- '9\\.\\s*hét'
+query_string <- '11\\.\\s*hét'
 ```
 
 ```{r}
@@ -389,7 +389,7 @@ paired_wx_res <- statlist %>%
 datatable(paired_wx_res)
 ```
 
-### Parametric test after lognormalization
+## Parametric test after lognormalization
 
 ```{r message = FALSE, warning = FALSE}
 # Compare actual value to base_mean for all Params

@@ -389,7 +389,7 @@ paired_wx_res <- statlist %>%
 datatable(paired_wx_res)
 ```
 
-### Parametric test after lognormalization
+## Parametric test after lognormalization
 
 ```{r message = FALSE, warning = FALSE}
 # Compare actual value to base_mean for all Params
