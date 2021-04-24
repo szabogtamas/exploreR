@@ -28,7 +28,7 @@ library(DT)
 library(knitr)
 
 control_sheet_location <- '~/Internal controls/Datasets'
-query_string <- '9\\.\\s*hét'
+query_string <- '11\\.\\s*hét'
 ```
 
 ```{r}
@@ -237,22 +237,7 @@ layout(
 ```
 
 
-## Percent difference (precision)
-
-### Summary of differences
-
-```{r message = FALSE, warning = FALSE, fig.width = 8, fig.height = 12}
-# Non-interactive summary
-
-main_data %>%
-  ggline(
-    x = "Param", y = "pct_diff", color = "Mach", add = c("mean_se", "dotplot"),
-    facet.by = "Mach", ncol = 1, font.xtickslab = c(8, "plain", "black"),
-    x.text.angle = 30, legend = "right", xlab = "", palette = pal_npg()(9)
-  )
-```
-
-### Precision by Machine
+## Precision by Machine
 
 ```{r message = FALSE, warning = FALSE}
 # Interactively show pct_differences by site / machine
@@ -299,97 +284,7 @@ for (MCH in unique(main_data$Mach)) {
 htmltools::tagList(figlist)
 ```
 
-### Precision by Sample
-
-```{r message = FALSE, warning = FALSE}
-# Interactively show pct_differences by sample
-
-figlist <- list()
-
-for (SMPL in unique(main_data$Sample)) {
-  gg <- main_data %>%
-    filter(Sample == SMPL) %>%
-    mutate(
-      PCT = paste(round(pct_diff, 2), "%", sep = ""),
-      pct_diff = pct_diff / 100
-    ) %>%
-    ggplot(aes(
-      x = Param, y = pct_diff, color = Mach, label1 = PCT,
-      label2 = Value, label3 = Base_mean, label4 = Unit
-    )) +
-    geom_jitter(position=position_jitter(0.2), cex=0.5) +
-    geom_hline(
-      yintercept = c(-0.05, 0.05), linetype = "dashed", color = "red", size = 0.1
-    ) +
-    #facet_grid("Mach") +
-    scale_color_npg() +
-    scale_y_continuous(labels = scales::percent_format(), limits = c(-0.15, 0.15)) +
-    theme_bw() +
-    theme(
-        panel.grid.major = element_blank(),
-        axis.text.x = element_text(angle = 30, hjust = 1), 
-    ) +
-    labs(x = "", y = "Percent difference from mean", title = paste("Sample tested:", SMPL))
-  
-  p <- gg %>%
-    ggplotly(
-      tooltip = c("x", "label1", "label2", "label3", "label4"),
-      height = 300, width = 800
-    ) %>%
-    layout(
-      plot_bgcolor  = 'rgba(0, 0, 0, 0)', paper_bgcolor = 'rgba(0, 0, 0, 0)'
-    )
-
-  figlist[[SMPL]] <- p
-}
-
-htmltools::tagList(figlist)
-```
-
-
-## Pairwise Paired t-tests
-
-### Non-parametic test
-
-```{r message = FALSE, warning = FALSE}
-# Compare actual value to base_mean for all Params
-
-statlist <- list()
-
-for (PARAM in param_order) {
-  
-  pr_data <- main_data %>%
-    filter(Param == PARAM) %>%
-    select(Mach, Value, Base_mean) %>%
-    group_by(Mach) %>%
-    group_split() %>%
-    map(function(x){
-      x2 <- filter(x, !is.na(Value))
-      if (nrow(x2) > 3){
-        st <- wilcox.test(x2$Value, x2$Base_mean, paired = TRUE, alternative = "two.sided")
-        st <- data.frame(Param = PARAM, Mach = unique(x$Mach), p.value = st$p.value)
-      } else {
-        st <- data.frame(Param = PARAM, Mach = unique(x$Mach), p.value = 1)
-      }
-      return(st)
-    }) %>%
-    bind_rows()
-  
-  statlist[[PARAM]] <- pr_data
-}
-
-paired_wx_res <- statlist %>%
-  bind_rows() %>%
-  mutate(
-    p.adj = p.adjust(p.value)
-  ) %>%
-  right_join(main_data, by = c("Mach", "Param")) %>%
-  arrange(p.value)
-
-datatable(paired_wx_res)
-```
-
-### Parametric test after lognormalization
+## Pairwise Paired t-tests after lognormalization
 
 ```{r message = FALSE, warning = FALSE}
 # Compare actual value to base_mean for all Params
@@ -433,8 +328,7 @@ paired_tt_res <- statlist %>%
 datatable(paired_tt_res)
 ```
 
-### Precision vs. pvalue
-
+## Precision vs. pvalue
 
 ```{r message = FALSE, warning = FALSE}
 # Volcano-like plot
@@ -482,83 +376,4 @@ gg %>%
   layout(
     plot_bgcolor  = 'rgba(0, 0, 0, 0)', paper_bgcolor = 'rgba(0, 0, 0, 0)'
   )
-```
-
-
-## ANOVA
-
-### Prerequisites
-
-As the samples are not replicates with the same target value, we need to use the
-percent difference derivation of the raw values for the ANOVA.  
-The tested hypothesis would then be if there is a difference in precision between
-the machines.
-
-```{r message = FALSE, warning = FALSE, fig.width = 8, fig.height = 12}
-# Check distribution of pct_diff values
-
-main_data %>%
-  ggqqplot("pct_diff", facet.by = "Mach", ncol = 1) %>%
-  ggpar(main = "Empirical and theoretical distribution of differences", ylab = "PCT")
-```
-
-```{r}
-# Compute Shapiro-Wilk test of normality
-
-main_data %>%
-  shapiro_test(pct_diff)
-```
-
-Distribution of percentage values is not normal, so non-parametric (Kruskal - Wallis)
-tests are needed.
-
-### Results
-
-```{r message = FALSE, warning = FALSE}
-# Compute a non-parametric ANOVA for each parameter
-
-figlist <- list()
-statlist <- list()
-
-for (PARAM in param_order) {
-  pr_data <- filter(main_data, Param == PARAM)
-  
-  res.kruskal <- pr_data %>%
-    kruskal_test(pct_diff ~ Mach)
-    
-  pwc <- pr_data %>%
-    dunn_test(pct_diff ~ Mach, p.adjust.method = "bonferroni") %>%
-    add_xy_position(x = "group")
-    
-  p <- pr_data %>%
-    ggboxplot(
-      x = "Mach", y = "pct_diff", x.text.angle = 30
-    ) +
-    stat_pvalue_manual(pwc, hide.ns = TRUE) +
-    labs(
-      title = paste("Differences for", PARAM),
-      subtitle = get_test_label(res.kruskal, detailed = TRUE),
-      caption = get_pwc_label(pwc),
-      x = "", y = "Percent difference\n"
-      )
-  
-  figlist[[PARAM]] <- p
-  statlist[[PARAM]] <- pwc
-}
-
-final_stat <- statlist %>%
-  imap(~mutate(.x, param = .y)) %>%
-  bind_rows %>%
-  select(param, p, p.adj, group1, group2) %>%
-  arrange(p.adj)
-
-datatable(final_stat)
-```
-
-```{r message = FALSE, warning = FALSE}
-# Report differences on figure
-
-for(p in figlist) {
-  print(p)
-}
 ```
