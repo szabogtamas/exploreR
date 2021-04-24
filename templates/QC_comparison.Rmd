@@ -1,5 +1,5 @@
 ---
-title: "Quality Control comparing precision across sites"
+title: "Quality Control comparing precision across sites (week 16)"
 output: 
   html_document:
     code_folding: hide
@@ -28,7 +28,7 @@ library(DT)
 library(knitr)
 
 control_sheet_location <- '~/Internal controls/Datasets'
-query_string <- '11\\.\\s*hét'
+query_string <- '16\\.\\s*hét'
 ```
 
 ```{r}
@@ -67,7 +67,7 @@ tidyup_raw_colnames <- function(in_df) {
     head(1) %>%
     as.numeric() %>%
     {rep("X", .-1)}
-    
+  
   for (i in seq(1, length(mach_names) - 1)){
     pp <- as.numeric(names(mach_names))
     mach <- mach_names[[i]]
@@ -86,8 +86,9 @@ tidyup_raw_colnames <- function(in_df) {
   colnames(in_df) <- c("Param", "Unit", column_meta$colunique[c(-1, -2)])
   
   in_df <- in_df %>%
-    .[c(-1, -2),] %>%
+    .[-1,] %>%
     pivot_longer(-one_of("Param", "Unit", "file_name")) %>%
+    mutate(value = as.numeric(value)) %>%
     left_join(column_meta, by = c(name = "colunique"))
   
   return(in_df)
@@ -124,7 +125,10 @@ main_data <- control_sheet_location %>%
   map(read_controlfile_from_drive) %>%
   map(tidyup_raw_file) %>%
   bind_rows() %>%
-  filter(!(Param %in% c(NA, "44258")))
+  filter(!(Param %in% c(NA, "44258"))) %>%
+  mutate(
+    Mach = gsub("\\s*\\(.*\\)", "", Mach)
+  )
 
 mean_measured_values <- main_data %>%
   group_by(Param, Sample) %>%
@@ -249,7 +253,8 @@ for (MCH in unique(main_data$Mach)) {
     filter(Mach == MCH) %>%
     mutate(
       PCT = paste(round(pct_diff, 2), "%", sep = ""),
-      pct_diff = pct_diff / 100
+      pct_diff = pct_diff / 100,
+      pct_diff = ifelse(abs(pct_diff) > 0.14, ifelse(pct_diff < 0, -0.145, 0.145), pct_diff)
     ) %>%
     ggplot(aes(
       x = Param, y = pct_diff, color = Sample, label1 = PCT,
@@ -329,6 +334,60 @@ datatable(paired_tt_res)
 ```
 
 ## Precision vs. pvalue
+
+```{r message = FALSE, warning = FALSE}
+# Volcano-like plot
+
+gg <- paired_tt_res %>%
+  group_by(Mach, Param) %>%
+  mutate(
+    meanDiff = mean(pct_diff, rm.na=TRUE)
+  ) %>%
+  ungroup() %>%
+  mutate(
+    logP = -1 * log10(p.adj),
+    #logP = -1 * log10(p.value),
+    meanDiff = meanDiff / 100 %>%
+      round(3),
+    PCT = paste(100 * meanDiff, "%"),
+    logDiff = ifelse(meanDiff < 0, -log10(round(-1000*meanDiff)), log10(round(1000*meanDiff))),
+    adjustedP = p.adj
+  ) %>%
+  distinct(logDiff, logP, PCT, adjustedP, Param, Mach) %>%
+  ggplot(aes(
+    x = logDiff, y = logP, color = Mach, label1 = PCT, label2 = Param,
+    label3 = Mach, label4 = adjustedP
+  )) +
+  geom_point(cex=0.5) +
+  geom_hline(
+    yintercept = -log10(0.05), linetype = "dashed", color = "red", size = 0.1
+  ) +
+  geom_vline(
+    xintercept = c(-log10(50), log10(50)), linetype = "dashed", color = "red", size = 0.1
+  ) +
+  scale_x_continuous(
+    breaks=c(-3, -2, -1, 0, 1, 2, 3),
+    labels=c("-100%", "-10%", "-1%", "0", "1%", "10%", "100%"), limits=c(-4, 4)
+  ) +
+  scale_color_npg() +
+  theme_bw() +
+  theme(
+      panel.grid.major = element_blank(),
+      axis.text.x = element_text(angle = 30, hjust = 1), 
+  ) +
+  labs(x = "Logarithmic Mean Difference", y = "-log10(P)")
+
+gg %>%
+  ggplotly(
+    tooltip = c("x", "label1", "label2", "label3", "label4"),
+    height = 600, width = 800
+  ) %>%
+  layout(
+    plot_bgcolor  = 'rgba(0, 0, 0, 0)', paper_bgcolor = 'rgba(0, 0, 0, 0)'
+  )
+```
+
+Focusing on <10% differences
 
 ```{r message = FALSE, warning = FALSE}
 # Volcano-like plot
