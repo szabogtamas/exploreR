@@ -1,0 +1,77 @@
+---
+title: "Explorative stats for Clinical chemistri parameters"
+output: 
+  html_document:
+    code_folding: hide
+    toc: true
+    toc_float:
+      toc_collapsed: true
+---
+
+## Setup
+
+```{r}
+PARAM_CODE <- c("PSA")
+LAB_DB_LOCATION <- "Datasets/LabResults/"
+```
+
+```{r}
+library(tidyr)
+library(dplyr)
+library(purrr)
+library(stringr)
+library(readxl)
+library(googledrive)
+library(ggplot2)
+library(ggsci)
+library(ggpubr)
+library(plotly)
+library(DT)
+```
+
+```{r}
+# Set how Google Drive authentication should be done
+drive_auth(cache = "/home/rstudio/local_files/.secrets", use_oob = TRUE)
+```
+
+```{r message = FALSE, warning = FALSE}
+# Define function that opens table from drive
+read_from_drive <- function(drive_id) {
+  path <- drive_get(id = drive_id)
+  drive_download(path, overwrite = TRUE)
+  data_file <- path$name
+  data_table <- read_excel(data_file)
+  data_table$file_name <- data_file
+  unlink(data_file)
+  return(data_table)
+}
+
+```
+
+```{r}
+main_table <- PARAM_CODE %>%
+  paste(LAB_DB_LOCATION, ., ".txt", sep="") %>%
+  map(read_from_drive) %>%
+  bind_rows()
+```
+
+## Correlations
+
+```{r}
+showLoessCorr <- function(data, mapping){
+  p <- ggplot(data = data, mapping = mapping) + 
+    geom_point() + 
+    geom_smooth(method=loess, fill="red", color="red")
+  p
+}
+showLinCorr <- function(data, mapping){
+  p <- ggplot(data = data, mapping = mapping) + 
+    geom_point() + 
+    geom_smooth(method=lm, fill="blue", color="blue")
+  p
+}
+mutatsdKorrMat <- function(data){
+  p <- ggpairs(data, upper = list(continuous = showLoessCorr), lower = list(continuous = showLinCorr))
+  p
+}
+```
