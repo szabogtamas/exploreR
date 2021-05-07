@@ -11,11 +11,13 @@ output:
 ## Setup
 
 ```{r}
-PARAM_CODE <- c("PSA")
-LAB_DB_LOCATION <- "Datasets/LabResults/"
+# Define parameters of interest
+PARAM_CODE <- c("D3")
+LAB_DB_LOCATION <- "~/Datasets/LabResults/"
 ```
 
 ```{r}
+# Import packages
 library(tidyr)
 library(dplyr)
 library(purrr)
@@ -36,11 +38,16 @@ drive_auth(cache = "/home/rstudio/local_files/.secrets", use_oob = TRUE)
 
 ```{r message = FALSE, warning = FALSE}
 # Define function that opens table from drive
-read_from_drive <- function(drive_id) {
-  path <- drive_get(id = drive_id)
+read_from_drive <- function(drive_path) {
+  path <- drive_get(drive_path)
   drive_download(path, overwrite = TRUE)
-  data_file <- path$name
-  data_table <- read_excel(data_file)
+  data_file <- basename(drive_path)
+  data_table <- read.csv(data_file, sep="|", stringsAsFactors=FALSE, header=FALSE)
+  colnames(data_table) <- c(
+    "db_row", "patient_id", "gender", "age", "order_id", "date", "time", "param",
+    "value_c", "value_n", "is_numeric", "needs_revision", "qc_comment", "instrument", "unit",
+    "normal_range", "ward_id", "lab_comment"
+  )
   data_table$file_name <- data_file
   unlink(data_file)
   return(data_table)
@@ -49,29 +56,84 @@ read_from_drive <- function(drive_id) {
 ```
 
 ```{r}
+# Download from drive
 main_table <- PARAM_CODE %>%
   paste(LAB_DB_LOCATION, ., ".txt", sep="") %>%
   map(read_from_drive) %>%
   bind_rows()
 ```
 
-## Correlations
+## Basic descriptive statistics
 
-```{r}
-showLoessCorr <- function(data, mapping){
-  p <- ggplot(data = data, mapping = mapping) + 
-    geom_point() + 
-    geom_smooth(method=loess, fill="red", color="red")
-  p
-}
-showLinCorr <- function(data, mapping){
-  p <- ggplot(data = data, mapping = mapping) + 
-    geom_point() + 
-    geom_smooth(method=lm, fill="blue", color="blue")
-  p
-}
-mutatsdKorrMat <- function(data){
-  p <- ggpairs(data, upper = list(continuous = showLoessCorr), lower = list(continuous = showLinCorr))
-  p
-}
+### DB health check
+
+```{r warning=FALSE}
+tmp_table <- main_table %>%
+  add_count(is_numeric) %>%
+  mutate(
+    is_numeric = ifelse(is_numeric == "N", "Numerical result", "Parametric or comented"),
+    is_numeric = paste(is_numeric, " (", n, ")", sep="")
+  )
+
+numres_label <- tmp_table %>%
+  filter(grepl("Numerical result", is_numeric)) %>%
+  .$is_numeric %>%
+  unique()
+
+parres_label <- tmp_table %>%
+  filter(grepl("Parametric or comented", is_numeric)) %>%
+  .$is_numeric %>%
+  unique()
+
+p <- tmp_table %>%
+  mutate(
+    is_numeric = factor(is_numeric, levels=c(parres_label, numres_label))
+  ) %>%
+  ggplot(aes(x=param, fill=is_numeric)) + 
+  geom_histogram(position="stack", stat="count") +
+  scale_fill_npg() +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(angle=30, vjust=0.5, hjust=1)
+  ) +
+  labs(title="Number of measurements per parameter code", x="", y="")
+
+ggplotly(p)
+```
+
+### Distribution of measurements by gender
+
+```{r warning=FALSE}
+tmp_table <- main_table %>%
+  filter(is_numeric == "N") %>%
+  add_count(gender) %>%
+  mutate(
+    gender = ifelse(gender == "m", "Male", "Female"),
+    gender = paste(gender, " (", n, ")", sep="")
+  )
+
+female_label <- tmp_table %>%
+  filter(grepl("Female", is_numeric)) %>%
+  .$is_numeric %>%
+  unique()
+
+male_label <- tmp_table %>%
+  filter(grepl("Male", is_numeric)) %>%
+  .$is_numeric %>%
+  unique()
+
+p <- tmp_table %>%
+  mutate(
+    gender = factor(gender, levels=c(female_label, male_label))
+  ) %>%
+  ggplot(aes(x=value_n, fill=gender)) + 
+  geom_density(alpha=0.6) +
+  scale_fill_npg() +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(angle=30, vjust=0.5, hjust=1)
+  ) +
+  labs(title="Distribution of measurements by gender", x="", y="")
+
+ggplotly(p)
 ```

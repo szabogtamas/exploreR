@@ -1,5 +1,5 @@
 ---
-title: "Quality Control comparing precision across sites (week 16)"
+title: "Quality Control comparing precision across sites (week 18)"
 output: 
   html_document:
     code_folding: hide
@@ -28,7 +28,7 @@ library(DT)
 library(knitr)
 
 control_sheet_location <- '~/Internal controls/Datasets'
-query_string <- '16\\.\\s*hét'
+query_string <- '18\\.\\s*hét'
 ```
 
 ```{r}
