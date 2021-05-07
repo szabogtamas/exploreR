@@ -113,13 +113,13 @@ tmp_table <- main_table %>%
   )
 
 female_label <- tmp_table %>%
-  filter(grepl("Female", is_numeric)) %>%
-  .$is_numeric %>%
+  filter(grepl("Female", gender)) %>%
+  .$gender %>%
   unique()
 
 male_label <- tmp_table %>%
-  filter(grepl("Male", is_numeric)) %>%
-  .$is_numeric %>%
+  filter(grepl("Male", gender)) %>%
+  .$gender %>%
   unique()
 
 p <- tmp_table %>%
