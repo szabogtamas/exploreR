@@ -137,3 +137,7 @@ p <- tmp_table %>%
 
 ggplotly(p)
 ```
+
+### Normal range and outliers
+
+## Change in characteristics by time
