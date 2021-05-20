@@ -42,7 +42,9 @@ read_from_drive <- function(drive_path) {
   path <- drive_get(drive_path)
   drive_download(path, overwrite = TRUE)
   data_file <- basename(drive_path)
-  data_table <- read.csv(data_file, sep="|", stringsAsFactors=FALSE, header=FALSE)
+  data_table <- data_file %>%
+    gzfile() %>%
+    read.csv(sep="|", stringsAsFactors=FALSE, header=FALSE)
   colnames(data_table) <- c(
     "db_row", "patient_id", "gender", "age", "order_id", "date", "time", "param",
     "value_c", "value_n", "is_numeric", "needs_revision", "qc_comment", "instrument", "unit",
@@ -58,7 +60,7 @@ read_from_drive <- function(drive_path) {
 ```{r}
 # Download from drive
 main_table <- PARAM_CODE %>%
-  paste(LAB_DB_LOCATION, ., ".txt", sep="") %>%
+  paste(LAB_DB_LOCATION, ., ".txt.gz", sep="") %>%
   map(read_from_drive) %>%
   bind_rows()
 ```
