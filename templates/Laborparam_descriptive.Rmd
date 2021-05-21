@@ -143,3 +143,5 @@ ggplotly(p)
 ### Normal range and outliers
 
 ## Change in characteristics by time
+
+### Stability of measurement medians
