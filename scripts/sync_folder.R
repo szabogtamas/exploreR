@@ -12,4 +12,10 @@ LOCAL_FOLDER <- args[[1]]
 
 library("googledrive")
 
-all_files <- drive_find(pattern = "chicken")
+drive_auth(cache = "/home/rstudio/local_files/.secrets", use_oob = TRUE)
+
+all_files <- dir(LOCAL_FOLDER, full.names=TRUE)
+
+for(local_file in all_files){
+  drive_upload(local_file)
+}
