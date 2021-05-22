@@ -37,12 +37,11 @@ present_but_comapare$LOCAL_HASH <- md5sum(present_but_comapare$LOCAL_PATH)
 present_but_comapare$DRIVE_PATH <- basename(present_but_comapare$LOCAL_PATH)
 
 for(local_file in present_but_comapare$LOCAL_PATH){
-  drive_download(
-    file.path("~", DRIVE_FOLDER, basename(local_file)), overwrite=TRUE
-  )
+  local_file_bn <- present_but_comapare[present_but_comapare$LOCAL_PATH == local_file, "DRIVE_PATH"]
+  local_file_md5 <- present_but_comapare[present_but_comapare$LOCAL_PATH == local_file, "LOCAL_HASH"]
+  full_pth_on_drive <- file.path("~", DRIVE_FOLDER, local_file_bn)
   
-  drive_upload(
-    local_file,
-    path = file.path("~", DRIVE_FOLDER, basename(local_file))
-  )
+  drive_download(full_pth_on_drive, overwrite=TRUE)
+  
+  drive_upload(local_file, path = full_pth_on_drive)
 }
