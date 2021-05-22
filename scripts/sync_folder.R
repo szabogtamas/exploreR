@@ -29,16 +29,10 @@ for(local_file in upload_as_missing){
   )
 }
 
-present_but_comapare <- data.frame(
-  LOCAL_PATH = locally_present_files[presence_in_cloud],
-  stringsAsFactors = FALSE
-)
-present_but_comapare$LOCAL_HASH <- md5sum(present_but_comapare$LOCAL_PATH)
-present_but_comapare$DRIVE_PATH <- basename(present_but_comapare$LOCAL_PATH)
-
-for(local_file in present_but_comapare$LOCAL_PATH){
-  local_file_bn <- present_but_comapare[present_but_comapare$LOCAL_PATH == local_file, "DRIVE_PATH"]
-  local_file_md5 <- present_but_comapare[present_but_comapare$LOCAL_PATH == local_file, "LOCAL_HASH"]
+for(local_file in locally_present_files[presence_in_cloud]){
+  
+  local_file_md5 <- md5sum(local_file)
+  local_file_bn <- basename(local_file)
   full_pth_on_drive <- file.path("~", DRIVE_FOLDER, local_file_bn)
   
   drive_download(full_pth_on_drive, overwrite=TRUE)
