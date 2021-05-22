@@ -21,6 +21,14 @@ locally_present_files <- dir(LOCAL_FOLDER, full.names=TRUE)
 presence_in_cloud <- basename(locally_present_files) %in% already_uploaded_files$name
 
 upload_as_missing <- locally_present_files[!presence_in_cloud]
+
+for(local_file in upload_as_missing){
+  drive_upload(
+    local_file,
+    path = file.path("~", DRIVE_FOLDER, basename(local_file))
+  )
+}
+
 present_but_comapare <- data.frame(
   LOCAL_PATH = locally_present_files[presence_in_cloud],
   stringsAsFactors = FALSE
@@ -28,7 +36,11 @@ present_but_comapare <- data.frame(
 present_but_comapare$LOCAL_HASH <- md5sum(present_but_comapare$LOCAL_PATH)
 present_but_comapare$DRIVE_PATH <- basename(present_but_comapare$LOCAL_PATH)
 
-for(local_file in upload_as_missing){
+for(local_file in present_but_comapare$LOCAL_PATH){
+  drive_download(
+    file.path("~", DRIVE_FOLDER, basename(local_file)), overwrite=TRUE
+  )
+  
   drive_upload(
     local_file,
     path = file.path("~", DRIVE_FOLDER, basename(local_file))
