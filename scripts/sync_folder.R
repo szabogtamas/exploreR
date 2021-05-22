@@ -20,9 +20,7 @@ already_uploaded_files <- drive_ls(file.path("~", DRIVE_FOLDER))
 locally_present_files <- dir(LOCAL_FOLDER, full.names=TRUE)
 presence_in_cloud <- basename(locally_present_files) %in% already_uploaded_files$name
 
-upload_as_missing <- locally_present_files[!presence_in_cloud]
-
-for(local_file in upload_as_missing){
+for(local_file in locally_present_files[!presence_in_cloud]){
   drive_upload(
     local_file,
     path = file.path("~", DRIVE_FOLDER, basename(local_file))
