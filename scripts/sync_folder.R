@@ -27,16 +27,21 @@ for(local_file in locally_present_files[!presence_in_cloud]){
   )
 }
 
+ifelse(!dir.exists("tmp"), dir.create("tmp"), FALSE)
+
 for(local_file in locally_present_files[presence_in_cloud]){
   
   local_file_md5 <- md5sum(local_file)
   local_file_bn <- basename(local_file)
+  drive_file_tmp <- file.path("tmp", local_file_bn)
   full_pth_on_drive <- file.path("~", DRIVE_FOLDER, local_file_bn)
   
-  drive_download(full_pth_on_drive, overwrite=TRUE)
-  if(local_file_md5 != md5sum(local_file_bn)){
-    drive_upload(local_file, path = full_pth_on_drive)
+  drive_download(full_pth_on_drive,path=drive_file_tmp, overwrite=TRUE)
+  
+  if(local_file_md5 != md5sum(drive_file_tmp)){
+    drive_upload(local_file, path=full_pth_on_drive)
   }
+  
   unlink(local_file_bn)
   
 }
