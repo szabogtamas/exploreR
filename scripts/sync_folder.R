@@ -15,7 +15,7 @@ library("googledrive")
 
 drive_auth(cache = "/home/rstudio/local_files/.secrets", use_oob = TRUE)
 
-already_uploaded_files <- drive_find(pattern = file.path("~", DRIVE_FOLDER))
+already_uploaded_files <- drive_ls(file.path("~", DRIVE_FOLDER))
 locally_present_files <- dir(LOCAL_FOLDER, full.names=TRUE)
 
 for(local_file in locally_present_files){
