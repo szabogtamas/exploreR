@@ -34,6 +34,9 @@ for(local_file in locally_present_files[presence_in_cloud]){
   full_pth_on_drive <- file.path("~", DRIVE_FOLDER, local_file_bn)
   
   drive_download(full_pth_on_drive, overwrite=TRUE)
+  if(local_file_md5 != md5sum(local_file_bn)){
+    drive_upload(local_file, path = full_pth_on_drive)
+  }
+  unlink(local_file_bn)
   
-  drive_upload(local_file, path = full_pth_on_drive)
 }
