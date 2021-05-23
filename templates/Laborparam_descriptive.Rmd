@@ -32,6 +32,26 @@ library(DT)
 ```
 
 ```{r}
+show_tab <- function(tab){
+  datatable(
+    tab, extensions = "Buttons",
+    options = list(
+      scrollX="400px",
+      dom = "Bfrtip",
+      buttons = list(
+        list(
+          extend = "collection",
+          buttons = c("csv", "excel"),
+          text = "Download"
+        )
+      )
+    )
+  )
+}
+```
+
+
+```{r}
 # Set how Google Drive authentication should be done
 drive_auth(cache = "/home/rstudio/local_files/.secrets", use_oob = TRUE)
 ```
