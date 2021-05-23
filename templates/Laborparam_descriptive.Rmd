@@ -167,7 +167,7 @@ ggplotly(p)
 ### Outliers based on quantiles
 
 ```{r warning=FALSE}
-tmp_table <- main_table %>%
+median_iqr_table <- main_table %>%
   filter(is_numeric == "N") %>%
   add_count(gender) %>%
   mutate(
@@ -182,7 +182,7 @@ iqr <- tmp_table %>%
   {.["75%"] - .["25%"]} %>%
   {. * 1.5}
          
-tmp_table
+show_tab(median_iqr_table)
 ```
 
 ## Change in characteristics by time
