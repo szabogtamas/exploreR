@@ -48,6 +48,8 @@ show_tab <- function(tab){
     )
   )
 }
+
+color_names <- pal_npg()(9)
 ```
 
 
