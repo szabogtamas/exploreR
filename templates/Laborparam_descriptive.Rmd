@@ -176,11 +176,13 @@ median_iqr_table <- main_table %>%
     gender = paste(gender, " (", n, ")", sep="")
   )
 
-iqr <- tmp_table %>%
+median_iqr_table <- median_iqr_table %>%
   .$serum_level %>%
   quantile(probs=c(0.25, 0.75), na.rm=TRUE) %>%
-  {.["75%"] - .["25%"]} %>%
-  {. * 1.5}
+  t() %>%
+  data.frame() %>%
+  `colnames<-`(c("LQ", "UQ")) %>%
+  mutate(RANGE = 1.5 * (UQ - LQ))
          
 show_tab(median_iqr_table)
 ```
