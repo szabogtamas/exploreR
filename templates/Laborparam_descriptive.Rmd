@@ -142,6 +142,27 @@ ggplotly(p)
 
 ### Normal range and outliers
 
+### Outliers based on quantiles
+
+```{r warning=FALSE}
+tmp_table <- main_table %>%
+  filter(is_numeric == "N") %>%
+  add_count(gender) %>%
+  mutate(
+    serum_level = as.numeric(value_n),
+    gender = ifelse(gender == "m", "Male", "Female"),
+    gender = paste(gender, " (", n, ")", sep="")
+  )
+
+iqr <- tmp_table %>%
+  .$serum_level %>%
+  quantile(probs=c(0.25, 0.75), na.rm=TRUE) %>%
+  {.["75%"] - .["25%"]} %>%
+  {. * 1.5}
+         
+tmp_table
+```
+
 ## Change in characteristics by time
 
 ### Stability of measurement medians
