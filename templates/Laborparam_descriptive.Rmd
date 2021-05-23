@@ -182,7 +182,11 @@ median_iqr_table <- median_iqr_table %>%
   t() %>%
   data.frame() %>%
   `colnames<-`(c("LQ", "UQ")) %>%
-  mutate(RANGE = 1.5 * (UQ - LQ))
+  mutate(
+    RANGE = 1.5 * (UQ - LQ),
+    LB = LQ - RANGE,
+    UB = UQ + RANGE
+  )
          
 show_tab(median_iqr_table)
 ```
