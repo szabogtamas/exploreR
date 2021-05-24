@@ -104,7 +104,7 @@ main_table <- PARAM_CODE %>%
   bind_rows()
 ```
 
-```{r}
+```{r warning=FALSE}
 # Add gender information to main table and format values to numeric
 main_table <- main_table %>%
   mutate(
@@ -206,16 +206,6 @@ ggplotly(p)
 ```{r}
 median_iqr_table <- main_table %>%
   filter(is_numeric == "N") %>%
-  add_count(gender) %>%
-  mutate(
-    serum_level = as.numeric(value_n),
-    gender = case_when(
-      gender == "m" ~ "Male",
-      gender == "f" ~ "Female",
-      TRUE ~ "Unknown"
-    ),
-    gender = paste(gender, " (", n, ")", sep="")
-  ) %>%
   group_by(gender) %>%
   summarize(calc_quantile_boundaries(serum_level))
          
