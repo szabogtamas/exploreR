@@ -32,6 +32,7 @@ library(DT)
 ```
 
 ```{r}
+# Add some buttons to DT table
 show_tab <- function(tab){
   datatable(
     tab, extensions = "Buttons",
@@ -166,30 +167,43 @@ ggplotly(p)
 
 ### Outliers based on quantiles
 
-```{r warning=FALSE}
-median_iqr_table <- main_table %>%
+
+```{r}
+calc_quantile_boundaries <- function(serum_level) {
+  serum_level %>%
+    quantile(probs=c(0.25, 0.75), na.rm=TRUE) %>%
+    t() %>%
+    data.frame() %>%
+    `colnames<-`(c("LQ", "UQ")) %>%
+    mutate(
+      MEDIAN = median(serum_level, na.rm=TRUE),
+      RANGE = 1.5 * (UQ - LQ),
+      LB = LQ - RANGE,
+      UB = UQ + RANGE
+    )
+}
+
+median_iqr_table <- median_iqr_table %>%
   filter(is_numeric == "N") %>%
   add_count(gender) %>%
   mutate(
     serum_level = as.numeric(value_n),
-    gender = ifelse(gender == "m", "Male", "Female"),
+    gender = case_when(
+      gender == "m" ~ "Male",
+      gender == "f" ~ "Female",
+      TRUE ~ "Unknown"
+    ),
     gender = paste(gender, " (", n, ")", sep="")
-  )
-
-median_iqr_table <- median_iqr_table %>%
-  .$serum_level %>%
-  quantile(probs=c(0.25, 0.75), na.rm=TRUE) %>%
-  t() %>%
-  data.frame() %>%
-  `colnames<-`(c("LQ", "UQ")) %>%
-  mutate(
-    RANGE = 1.5 * (UQ - LQ),
-    LB = LQ - RANGE,
-    UB = UQ + RANGE
-  )
+  ) %>%
+  group_by(gender) %>%
+  summarize(calc_quantile_boundaries(serum_level))
          
 show_tab(median_iqr_table)
 ```
+
+
+
+
 
 ## Change in characteristics by time
 
