@@ -183,9 +183,6 @@ ggplotly(p)
 
 ### Distribution of measurements by gender
 
-
-
-
 ```{r warning=FALSE}
 p <- main_table %>%
   ggplot(aes(x=serum_level, fill=gender)) + 
