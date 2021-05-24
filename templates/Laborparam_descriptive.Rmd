@@ -109,6 +109,7 @@ main_table <- PARAM_CODE %>%
 main_table <- main_table %>%
   mutate(
     serum_level = as.numeric(value_n),
+    date = DATE = as.Date(date, format = "Y%.%m.%d"),
     gender = case_when(
       gender == "m" ~ "Male",
       gender == "f" ~ "Female",
@@ -241,3 +242,5 @@ main_table %>%
 ## Change in characteristics by time
 
 ### Stability of measurement medians
+
+
