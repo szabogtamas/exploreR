@@ -243,4 +243,11 @@ main_table %>%
 
 ### Stability of measurement medians
 
-
+```{r warning=FALSE}
+median_iqr_dynamics <- main_table %>%
+  filter(is_numeric == "N") %>%
+  group_by(gender, date) %>%
+  summarize(calc_quantile_boundaries(serum_level))
+         
+show_tab(median_iqr_dynoamics)
+```
