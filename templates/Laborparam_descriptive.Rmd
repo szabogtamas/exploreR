@@ -186,29 +186,8 @@ ggplotly(p)
 
 
 ```{r warning=FALSE}
-tmp_table <- main_table %>%
-  filter(is_numeric == "N") %>%
-  add_count(gender) %>%
-  mutate(
-    gender = ifelse(gender == "m", "Male", "Female"),
-    gender = paste(gender, " (", n, ")", sep="")
-  )
-
-female_label <- tmp_table %>%
-  filter(grepl("Female", gender)) %>%
-  .$gender %>%
-  unique()
-
-male_label <- tmp_table %>%
-  filter(grepl("Male", gender)) %>%
-  .$gender %>%
-  unique()
-
-p <- tmp_table %>%
-  mutate(
-    gender = factor(gender, levels=c(female_label, male_label))
-  ) %>%
-  ggplot(aes(x=value_n, fill=gender)) + 
+p <- main_table %>%
+  ggplot(aes(x=serum_level, fill=gender)) + 
   geom_density(alpha=0.6) +
   scale_fill_npg() +
   theme_bw() +
