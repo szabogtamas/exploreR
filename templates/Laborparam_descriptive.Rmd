@@ -121,17 +121,17 @@ main_table <- main_table %>%
   ) %>%
   select(-n)
 
-female_label <- tmp_table %>%
+female_label <- main_table %>%
   filter(grepl("Female", gender)) %>%
   .$gender %>%
   unique()
 
-male_label <- tmp_table %>%
+male_label <- main_table %>%
   filter(grepl("Male", gender)) %>%
   .$gender %>%
   unique()
 
-other_label <- tmp_table %>%
+other_label <- main_table %>%
   filter(grepl("Unknown", gender)) %>%
   .$gender %>%
   unique()
