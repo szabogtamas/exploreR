@@ -225,6 +225,18 @@ main_table %>%
   )
 ```
 
+```{r warning=FALSE}
+main_table %>%
+  filter(is_numeric == "N") %>%
+  plot_ly(
+    x = ~gender, y = ~serum_level, type = "violin", color=color_names[1],
+    boxpoints = FALSE, width=800, height=600
+  ) %>%
+  layout(
+    xaxis = list(title="", tickangle = 30, tickfont=list(size=12)),
+    legend = list(orientation="h", xanchor="center", x=0.5)
+  )
+```
 
 ## Change in characteristics by time
 
