@@ -104,6 +104,44 @@ main_table <- PARAM_CODE %>%
   bind_rows()
 ```
 
+```{r}
+# Add gender information to main table and format values to numeric
+main_table <- main_table %>%
+  mutate(
+    serum_level = as.numeric(value_n),
+    gender = case_when(
+      gender == "m" ~ "Male",
+      gender == "f" ~ "Female",
+      TRUE ~ "Unknown"
+    )
+  ) %>%
+  add_count(gender) %>%
+  mutate(
+    gender = paste(gender, " (", n, ")", sep="")
+  ) %>%
+  select(-n)
+
+female_label <- tmp_table %>%
+  filter(grepl("Female", gender)) %>%
+  .$gender %>%
+  unique()
+
+male_label <- tmp_table %>%
+  filter(grepl("Male", gender)) %>%
+  .$gender %>%
+  unique()
+
+other_label <- tmp_table %>%
+  filter(grepl("Unknown", gender)) %>%
+  .$gender %>%
+  unique()
+
+main_table <- main_table %>%
+  mutate(
+    gender = factor(gender, levels=c(female_label, male_label, other_label))
+  )
+```
+
 ## Basic descriptive statistics
 
 ### DB health check
@@ -144,6 +182,9 @@ ggplotly(p)
 
 ### Distribution of measurements by gender
 
+
+
+
 ```{r warning=FALSE}
 tmp_table <- main_table %>%
   filter(is_numeric == "N") %>%
@@ -183,9 +224,8 @@ ggplotly(p)
 
 ### Outliers based on quantiles
 
-
 ```{r}
-median_iqr_table <- median_iqr_table %>%
+median_iqr_table <- main_table %>%
   filter(is_numeric == "N") %>%
   add_count(gender) %>%
   mutate(
