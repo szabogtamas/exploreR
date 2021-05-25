@@ -240,14 +240,15 @@ main_table %>%
 
 ### Stability of measurement medians
 
-```{r}
+```{r warning=FALSE}
 median_iqr_by_date <- main_table %>%
   filter(is_numeric == "N") %>%
   mutate(
     month = format(DATE, "%m"),
-    year = format(DATE, "%Y")
+    year = format(DATE, "%Y"),
+    year_month = paste(year, month)
   ) %>%
-  group_by(month, year) %>%
+  group_by(year_month) %>%
   summarize(calc_quantile_boundaries(serum_level))
     
 show_tab(median_iqr_by_date)
