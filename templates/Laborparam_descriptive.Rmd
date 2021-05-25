@@ -109,7 +109,7 @@ main_table <- PARAM_CODE %>%
 main_table <- main_table %>%
   mutate(
     serum_level = as.numeric(value_n),
-    date = DATE = as.Date(date, format = "Y%.%m.%d"),
+    DATE = as.Date(date, format = "%Y.%m.%d"),
     gender = case_when(
       gender == "m" ~ "Male",
       gender == "f" ~ "Female",
@@ -240,11 +240,15 @@ main_table %>%
 
 ### Stability of measurement medians
 
-```{r warning=FALSE}
-median_iqr_dynamics <- main_table %>%
+```{r}
+median_iqr_by_date <- main_table %>%
   filter(is_numeric == "N") %>%
-  group_by(gender, date) %>%
+  mutate(
+    month = format(DATE, "%m"),
+    year = format(DATE, "%Y")
+  ) %>%
+  group_by(month, year) %>%
   summarize(calc_quantile_boundaries(serum_level))
-         
-show_tab(median_iqr_dynoamics)
+    
+show_tab(median_iqr_by_date)
 ```
