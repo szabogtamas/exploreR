@@ -253,3 +253,13 @@ median_iqr_by_date <- main_table %>%
     
 show_tab(median_iqr_by_date)
 ```
+
+```{r}
+p <- median_iqr_by_date %>%
+  ggplot() +
+  geom_line(aes(y=MEDIAN, x=year_month, color=color_names[2])) +
+  geom_ribbon(aes(ymin=LB, ymax=UB, x=year_month, fill=color_names[2]), alpha=0.3)
+
+ggplotly(p)
+```
+
