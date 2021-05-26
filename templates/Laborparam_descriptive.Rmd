@@ -256,10 +256,19 @@ show_tab(median_iqr_by_date)
 
 ```{r}
 p <- median_iqr_by_date %>%
+  arrange(year_month) %>%
+  mutate(
+    group = "",
+    year_month = paste(year_month, "01"),
+    year_month = as.Date(year_month, format="%Y %m %d")
+  ) %>%
   ggplot() +
-  geom_line(aes(y=MEDIAN, x=year_month, color=color_names[2])) +
-  geom_ribbon(aes(ymin=LB, ymax=UB, x=year_month, fill=color_names[2]), alpha=0.3)
-
+  geom_line(aes(y=MEDIAN, x=year_month, group=group), color=color_names[1]) +
+  geom_ribbon(aes(ymin=LB, ymax=UB, x=year_month), fill=color_names[2], alpha=0.3) +
+  scale_x_date(date_labels = "%m-%Y") +
+  labs(
+    title = "Median +/- 1.5 IQR by month", x = "Date", y = paste(PARAM_CODE, "serum level")
+  )
 ggplotly(p)
 ```
 
