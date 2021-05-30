@@ -5,6 +5,8 @@
 ############################################################################
 
 
+ALLOW_INTERACTION <- knitr::is_html_output()
+
 show_tab <- function(tab){
   datatable(
     tab, extensions = "Buttons",
