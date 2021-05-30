@@ -1,3 +1,10 @@
+############################################################################
+#                                                                          #
+#   Defines some functions that help display tables and plots in reports   #
+#                                                                          #
+############################################################################
+
+
 show_tab <- function(tab){
   datatable(
     tab, extensions = "Buttons",
