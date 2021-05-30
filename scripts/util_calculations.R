@@ -16,6 +16,7 @@ calc_quantile_boundaries <- function(serum_level) {
       MEDIAN = median(serum_level, na.rm=TRUE),
       RANGE = 1.5 * (UQ - LQ),
       LB = LQ - RANGE,
-      UB = UQ + RANGE
+      UB = UQ + RANGE,
+      N_MEASURED = length(serum_level)
     )
 }
