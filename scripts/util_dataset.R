@@ -4,7 +4,7 @@
 #                                                                          #
 ############################################################################
 
-
+LAB_DB_LOCATION <- "~/Datasets/LabResults/"
 LB_PARAM_TABLE_COLNAMES <- c(
     "db_row", "patient_id", "gender", "age", "order_id", "date", "time", "param",
     "value_c", "value_n", "is_numeric", "needs_revision", "qc_comment", "instrument",
