@@ -1,3 +1,10 @@
+############################################################################
+#                                                                          #
+#   Defines some utility functions for basic stats calculations            #
+#                                                                          #
+############################################################################
+
+
 # Define small function summarizing median, iqr and outlier boundaries
 calc_quantile_boundaries <- function(serum_level) {
   serum_level %>%
