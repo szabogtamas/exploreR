@@ -7,6 +7,7 @@
 
 ALLOW_INTERACTION <- knitr::is_html_output()
 
+### Show a nice table with download option
 show_tab <- function(tab){
   datatable(
     tab, extensions = "Buttons",
