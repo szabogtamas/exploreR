@@ -1,3 +1,10 @@
+############################################################################
+#                                                                          #
+#   Defines some laboratory database specific retrieval functions          #
+#                                                                          #
+############################################################################
+
+
 read_from_drive <- function(drive_path) {
   path <- drive_get(drive_path)
   drive_download(path, overwrite = TRUE)
