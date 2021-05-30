@@ -32,3 +32,33 @@ retrieve_labresults_by_paramcodes <- function(param_codes, lab_db_location=LAB_D
   map(read_from_drive) %>%
   bind_rows()
 }
+
+### Join a second parameter to the main labparam table (for correlations)
+join_additional_measured_param <- function(
+  primary_result_tab,
+  additional_param_codes,
+  lab_param_name,
+  days_flexible=7
+){
+  
+  lab_param_level <- paste(lab_param_name, "level", sep="_")
+  lab_param_date <- paste(lab_param_name, "date", sep="_")
+  
+  additional_param_codes %>%
+    retrieve_labresults_by_paramcodes() %>%
+    mutate(
+      !!lab_param_level := as.numeric(value_n),
+      !!lab_param_date := as.Date(date, format = "%Y.%m.%d"),
+    ) %>%
+    filter(!is.na(!!lab_param_level)) %>%
+  select(!!lab_param_date, !!lab_param_level, patient_id) %>%
+  right_join(primary_result_tab, by="patient_id") %>%
+  filter(!is.na(!!lab_param_date)) %>%
+  mutate(
+    SECDIFF = abs(as.numeric(difftime(!!sym(lab_param_date), DATE, units="days")))
+  ) %>%
+  filter(SECDIFF < days_flexible) %>%
+  arrange(SECDIFF) %>%
+  select(-SECDIFF) %>%
+  distinct(db_row, .keep_all=TRUE)
+}
