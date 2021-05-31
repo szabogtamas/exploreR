@@ -12,7 +12,9 @@ output:
 
 ```{r}
 # Source utility functions
-source("../scripts/util_dataset")
+source("/home/rstudio/repo_files/scripts/util_dataset.R ")
+source("/home/rstudiorepo_files/scripts/util_display.R")
+source("/home/rstudio/repo_files/scripts/util_calculations.R")
 ```
 
 ```{r}
