@@ -18,7 +18,7 @@ LB_PARAM_TABLE_COLNAMES <- c(
 #' @param colnames_to_add character  Column names for the table retrieved from Drive
 #' 
 #' @return data.frame                Clinical chemistry results for a given parameter code.
-read_from_drive <- function(drive_path, colnames_to_add=LB_PARAM-TABLE_COLNAMES) {
+read_from_drive <- function(drive_path, colnames_to_add=LB_PARAM_TABLE_COLNAMES) {
   path <- drive_get(drive_path)
   drive_download(path, overwrite = TRUE)
   data_file <- basename(drive_path)
