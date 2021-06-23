@@ -9,20 +9,24 @@ ALLOW_INTERACTION <- knitr::is_html_output()
 
 ### Show a nice table with download option
 show_tab <- function(tab){
-  datatable(
-    tab, extensions = "Buttons",
-    options = list(
-      scrollX="400px",
-      dom = "Bfrtip",
-      buttons = list(
-        list(
-          extend = "collection",
-          buttons = c("csv", "excel"),
-          text = "Download"
+  if (interaction) {
+    datatable(
+      tab, extensions = "Buttons",
+      options = list(
+        scrollX="400px",
+        dom = "Bfrtip",
+        buttons = list(
+          list(
+            extend = "collection",
+            buttons = c("csv", "excel"),
+            text = "Download"
+          )
         )
       )
     )
-  )
+  } else {
+    tab
+  }
 }
 
 ### Patching Pheatmap with diagonal column labels;
