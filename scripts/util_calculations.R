@@ -6,8 +6,8 @@
 
 
 # Define small function summarizing median, iqr and outlier boundaries
-calc_quantile_boundaries <- function(serum_level) {
-  serum_level %>%
+calc_quantile_boundaries <- function(serum_level, th=NULL) {
+  out <- serum_level %>%
     quantile(probs=c(0.25, 0.75), na.rm=TRUE) %>%
     t() %>%
     data.frame() %>%
@@ -19,4 +19,8 @@ calc_quantile_boundaries <- function(serum_level) {
       UB = UQ + RANGE,
       N_MEASURED = length(serum_level)
     )
+  if(!is.null(th)){
+    out$NPATH <- sum(serum_level > th)
+  }
+  return(out)
 }
