@@ -63,15 +63,17 @@ join_additional_measured_param <- function(
   
   lab_param_level <- paste(lab_param_name, "level", sep="_")
   lab_param_date <- paste(lab_param_name, "date", sep="_")
+  lab_param_unit <- paste(lab_param_name, "unit", sep="_")
   
   additional_param_codes %>%
     retrieve_labresults_by_paramcodes() %>%
     mutate(
+      !!lab_param_unit := unit,
       !!lab_param_level := as.numeric(value_n),
       !!lab_param_date := as.Date(date, format = "%Y.%m.%d"),
     ) %>%
     filter(!is.na(!!lab_param_level)) %>%
-  select(!!lab_param_date, !!lab_param_level, patient_id) %>%
+  select(!!lab_param_date, !!lab_param_level, !!lab_param_unit, patient_id) %>%
   right_join(primary_result_tab, by="patient_id") %>%
   filter(!is.na(!!lab_param_date)) %>%
   mutate(
