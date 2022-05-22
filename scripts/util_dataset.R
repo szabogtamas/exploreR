@@ -27,6 +27,7 @@ read_from_drive <- function(drive_path, colnames_to_add=LB_PARAM_TABLE_COLNAMES)
     read.csv(sep="|", stringsAsFactors=FALSE, header=FALSE)
   colnames(data_table) <- colnames_to_add
   data_table$file_name <- data_file
+  data_table <- mutate_all(data_table , as.character)
   unlink(data_file)
   return(data_table)
 }
