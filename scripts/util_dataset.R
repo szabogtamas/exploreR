@@ -16,9 +16,10 @@ LB_PARAM_TABLE_COLNAMES <- c(
 #' 
 #' @param drive_path string          Path to labparam table on Drive
 #' @param colnames_to_add character  Column names for the table retrieved from Drive
+#' @param keep_file lofical          Keep downloaded file or not
 #' 
 #' @return data.frame                Clinical chemistry results for a given parameter code.
-read_from_drive <- function(drive_path, colnames_to_add=LB_PARAM_TABLE_COLNAMES) {
+read_from_drive <- function(drive_path, colnames_to_add=LB_PARAM_TABLE_COLNAMES, keep_file=FALSE) {
   path <- drive_get(drive_path)
   drive_download(path, overwrite = TRUE)
   data_file <- basename(drive_path)
@@ -27,8 +28,7 @@ read_from_drive <- function(drive_path, colnames_to_add=LB_PARAM_TABLE_COLNAMES)
     read.csv(sep="|", stringsAsFactors=FALSE, header=FALSE)
   colnames(data_table) <- colnames_to_add
   data_table$file_name <- data_file
-  data_table <- mutate_all(data_table , as.character)
-  unlink(data_file)
+  if(!keep_file) unlink(data_file)
   return(data_table)
 }
 
