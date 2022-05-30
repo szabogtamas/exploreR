@@ -16,7 +16,7 @@ LB_PARAM_TABLE_COLNAMES <- c(
 #' 
 #' @param drive_path string          Path to labparam table on Drive
 #' @param colnames_to_add character  Column names for the table retrieved from Drive
-#' @param keep_file lofical          Keep downloaded file or not
+#' @param keep_file logical          Keep downloaded file or not
 #' 
 #' @return data.frame                Clinical chemistry results for a given parameter code.
 read_from_drive <- function(drive_path, colnames_to_add=LB_PARAM_TABLE_COLNAMES, keep_file=FALSE) {
@@ -37,9 +37,10 @@ read_from_drive <- function(drive_path, colnames_to_add=LB_PARAM_TABLE_COLNAMES,
 #' 
 #' @param param_codes character      A list of parameter codes to retrieve results for
 #' @param lab_db_location string     Path to labparam folder on Drive
+#' @param keep_file logical          Keep downloaded file or not
 #' 
 #' @return data.frame                Clinical chemistry results for a given set of parameter codes.
-retrieve_labresults_by_paramcodes <- function(param_codes, lab_db_location=LAB_DB_LOCATION){
+retrieve_labresults_by_paramcodes <- function(param_codes, lab_db_location=LAB_DB_LOCATION, keep_file=FALSE){
   param_codes %>%
   paste(lab_db_location, ., ".txt.gz", sep="") %>%
   map(read_from_drive) %>%
