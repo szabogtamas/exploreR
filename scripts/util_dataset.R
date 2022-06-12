@@ -44,7 +44,11 @@ retrieve_labresults_by_paramcodes <- function(param_codes, lab_db_location=LAB_D
   param_codes %>%
   paste(lab_db_location, ., ".txt.gz", sep="") %>%
   map(read_from_drive) %>%
-  bind_rows()
+  map(mutate_all, as.character) %>%
+  bind_rows() %>%
+  mutate(
+    value_n = as.numeric(value_n)
+  )
 }
 
 
