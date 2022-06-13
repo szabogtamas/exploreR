@@ -42,13 +42,14 @@ read_from_drive <- function(drive_path, colnames_to_add=LB_PARAM_TABLE_COLNAMES,
 #' @return data.frame                Clinical chemistry results for a given set of parameter codes.
 retrieve_labresults_by_paramcodes <- function(param_codes, lab_db_location=LAB_DB_LOCATION, keep_file=FALSE){
   param_codes %>%
-  paste(lab_db_location, ., ".txt.gz", sep="") %>%
-  map(read_from_drive) %>%
-  map(mutate_all, as.character) %>%
-  bind_rows() %>%
-  mutate(
-    value_n = as.numeric(value_n)
-  )
+    paste(lab_db_location, ., ".txt.gz", sep="") %>%
+    map(read_from_drive) %>%
+    map(mutate_all, as.character) %>%
+    bind_rows() %>%
+    mutate(
+      value_n = as.numeric(value_n),
+      age     = as.numeric(age)
+    )
 }
 
 
